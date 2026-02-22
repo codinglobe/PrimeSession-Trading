@@ -7,6 +7,12 @@
   let pushTimer = null;
   let pushing = false;
 
+  // Live sync
+  let liveStarted = false;
+  let liveTimer = null;
+  const LIVE_INTERVAL_MS = 8000; // alle 8s check (schnell genug, aber nicht nervös)
+  const EPS_MS = 1200;           // kleine Zeit-Toleranz gegen “timestamp jitter”
+
   function safeParse(s){ try { return JSON.parse(s); } catch { return null; } }
   function nowIso(){ return new Date().toISOString(); }
 
@@ -47,7 +53,7 @@
       impersonateUser: null,
       ui: {},
       profiles: { guest: mkProfile(false,'') },
-      _meta: { updatedAt: nowIso(), cloudSyncedAt: '' }
+      _meta: { updatedAt: nowIso(), cloudSyncedAt: '', cloudPulledAt: '' }
     };
   }
 
@@ -57,7 +63,13 @@
     return data;
   }
 
-  // Heuristik: hat der aktuelle User “echte” Daten?
+  function setMetaPulled(data, remoteUpdatedIso){
+    data._meta = data._meta || {};
+    data._meta.updatedAt = remoteUpdatedIso || data._meta.updatedAt || nowIso();
+    data._meta.cloudSyncedAt = remoteUpdatedIso || data._meta.cloudSyncedAt || '';
+    data._meta.cloudPulledAt = nowIso();
+  }
+
   function hasMeaningfulData(data, username){
     try{
       const u = username || data.currentUser || 'guest';
@@ -70,7 +82,6 @@
     } catch { return false; }
   }
 
-  // Frischer Browser / Inkognito: local hat keine echten Daten und noch nie cloud synced
   function isFreshEmptyLocal(data){
     const synced = String(data?._meta?.cloudSyncedAt || '').trim();
     if(synced) return false;
@@ -94,12 +105,10 @@
     data.profiles = data.profiles || {};
     data.profiles.guest = data.profiles.guest || mkProfile(false,'');
 
-    // ensure current profile exists
     if(data.currentUser && data.currentUser !== 'guest'){
       data.profiles[data.currentUser] = data.profiles[data.currentUser] || mkProfile(false,'');
     }
 
-    // normalize
     for(const [u, prof] of Object.entries(data.profiles)){
       prof.settings = prof.settings || defaultSettings();
       prof.settings.tpScheme = prof.settings.tpScheme || defaultTpScheme();
@@ -192,21 +201,15 @@
     }
   }
 
-  // Optional: Pull erzwingen (Debug)
-  async function cloudPullNow({ username, email } = {}){
+  // Debug: Pull erzwingen
+  async function cloudPullNow(){
     const user = await getUser();
     if(!user) return null;
     const remote = await cloudFetch(user.id);
     if(remote?.data){
       backupLocal('before_pull');
       const d = remote.data;
-      if(username){
-        d.currentUser = username;
-        d.profiles = d.profiles || {};
-        d.profiles[username] = d.profiles[username] || mkProfile(false, email || user.email || '');
-        d.profiles[username].email = email || user.email || d.profiles[username].email || '';
-      }
-      touch(d);
+      setMetaPulled(d, remote.updated_at);
       localStorage.setItem(STORAGE_KEY, JSON.stringify(d));
       return d;
     }
@@ -229,14 +232,12 @@
     const remote = await cloudFetch(user.id);
 
     const localUpdated = Date.parse(local?._meta?.updatedAt || '') || 0;
+    const localSynced  = Date.parse(local?._meta?.cloudSyncedAt || '') || 0;
     const remoteUpdated = remote?.updated_at ? Date.parse(remote.updated_at) : 0;
-
-    const remoteHas = !!(remote && remote.data && hasMeaningfulData(remote.data, u));
+    const remoteHas = !!(remote?.data && hasMeaningfulData(remote.data, u));
     const localFreshEmpty = isFreshEmptyLocal(local);
 
-    // ✅ wichtigste Schutzregel:
-    // Wenn remote Daten hat und local ist nur "frisch leer" -> remote gewinnt (niemals überschreiben)
-    if(remote && remote.data && remoteHas && localFreshEmpty){
+    if(remote?.data && remoteHas && localFreshEmpty){
       backupLocal('fresh_empty_local_remote_wins');
       local = remote.data;
 
@@ -246,13 +247,12 @@
       local.profiles[u] = local.profiles[u] || mkProfile(false, email || user.email || '');
       local.profiles[u].email = email || user.email || local.profiles[u].email || '';
 
-      touch(local);
+      setMetaPulled(local, remote.updated_at);
       localStorage.setItem(STORAGE_KEY, JSON.stringify(local));
       return;
     }
 
-    // Normalfall: “neuere” Seite gewinnt
-    if(remote && remote.data && remoteUpdated >= localUpdated){
+    if(remote?.data && remoteUpdated >= localUpdated){
       backupLocal('remote_wins');
       local = remote.data;
 
@@ -262,7 +262,7 @@
       local.profiles[u] = local.profiles[u] || mkProfile(false, email || user.email || '');
       local.profiles[u].email = email || user.email || local.profiles[u].email || '';
 
-      touch(local);
+      setMetaPulled(local, remote.updated_at);
       localStorage.setItem(STORAGE_KEY, JSON.stringify(local));
       return;
     }
@@ -276,6 +276,56 @@
     local._meta.cloudSyncedAt = nowIso();
     localStorage.setItem(STORAGE_KEY, JSON.stringify(local));
   }
+
+  // ✅ LIVE SYNC: wenn Cloud neuer ist → Pull, wenn Local unsynced → Push
+  async function cloudReconcileNow(){
+    const user = await getUser();
+    if(!user) return;
+
+    const remote = await cloudFetch(user.id);
+    if(!remote) return;
+
+    const remoteUpdated = remote.updated_at ? Date.parse(remote.updated_at) : 0;
+    const remoteData = remote.data;
+
+    const local = load();
+    const localUpdated = Date.parse(local?._meta?.updatedAt || '') || 0;
+    const localSynced  = Date.parse(local?._meta?.cloudSyncedAt || '') || 0;
+
+    // 1) Wenn local Änderungen hat, die noch nicht hochgeladen wurden -> push
+    if(localUpdated > localSynced + EPS_MS){
+      await cloudPushNow(local);
+      return;
+    }
+
+    // 2) Wenn remote neuer ist -> pull
+    if(remoteData && remoteUpdated > localUpdated + EPS_MS){
+      backupLocal('live_pull');
+      const d = remoteData;
+      setMetaPulled(d, remote.updated_at);
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(d));
+      return;
+    }
+  }
+
+  function startCloudLiveSync(){
+    if(liveStarted) return;
+    liveStarted = true;
+
+    // Interval Poll
+    liveTimer = setInterval(()=> { cloudReconcileNow().catch(()=>{}); }, LIVE_INTERVAL_MS);
+
+    // Pull sobald Tab wieder aktiv ist (damit “normal” sofort die Inkognito-Änderung bekommt)
+    window.addEventListener('focus', ()=> { cloudReconcileNow().catch(()=>{}); });
+    document.addEventListener('visibilitychange', ()=> {
+      if(document.visibilityState === 'visible'){
+        cloudReconcileNow().catch(()=>{});
+      }
+    });
+  }
+
+  // Auto-start (auf allen Seiten), schadet nicht wenn nicht eingeloggt
+  setTimeout(()=> startCloudLiveSync(), 1200);
 
   function exportJSON(){
     const data = load();
@@ -306,6 +356,8 @@
     cloudSyncAfterAuth,
     cloudPushNow,
     cloudPullNow,
+    cloudReconcileNow,
+    startCloudLiveSync,
 
     exportJSON,
     importJSONFile
