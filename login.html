@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="de-CH">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>PrimeSession Trading – Login</title>
+  <link rel="stylesheet" href="./assets/css/base.css" />
+  <link rel="stylesheet" href="./assets/css/auth.css" />
+</head>
+<body>
+  <main class="app-container">
+    <header class="app-header">
+      <div class="logo">🚀 PrimeSession Trading</div>
+      <div class="header-right">
+        <span class="badge">Offline</span>
+      </div>
+    </header>
+
+    <section class="card auth-card fixed-card">
+      <div class="auth-modes">
+        <button class="btn small" id="modeLogin">Login</button>
+        <button class="btn small" id="modeRegister">Registrieren</button>
+      </div>
+
+      <div id="loginWrap">
+        <h2 style="margin-top:.75rem">👤 Login</h2>
+        <form id="loginForm" class="auth-form">
+          <div class="input-group">
+            <label>Username</label>
+            <input id="loginUser" autocomplete="username" />
+          </div>
+          <div class="input-group">
+            <label>Password</label>
+            <input id="loginPass" type="password" autocomplete="current-password" />
+          </div>
+          <button class="btn primary" type="submit">Login</button>
+        </form>
+      </div>
+
+      <div id="regWrap" class="hidden">
+        <h2 style="margin-top:.75rem">➕ Registrieren</h2>
+        <form id="registerForm" class="auth-form">
+          <div class="input-group">
+            <label>Email</label>
+            <input id="regEmail" type="email" autocomplete="email" placeholder="name@mail.com" />
+          </div>
+          <div class="input-group">
+            <label>Username</label>
+            <input id="regUser" autocomplete="username" />
+          </div>
+          <div class="input-group">
+            <label>Password</label>
+            <input id="regPass" type="password" autocomplete="new-password" />
+          </div>
+          <button class="btn primary" type="submit">Konto erstellen</button>
+        </form>
+      </div>
+
+      <p class="muted" id="authMsg"></p>
+      <p class="small muted">Admin: <strong>admin</strong> / <strong>admin123</strong></p>
+    </section>
+
+    <section class="card auth-card fixed-card" style="margin-top:1rem">
+      <h2>🔑 Login Hilfe (Ticket)</h2>
+      <p class="small muted">Ticket erstellen (Username oder Email muss existieren).</p>
+
+      <form id="loginHelpForm" class="auth-form">
+        <div class="input-group">
+          <label>Username oder Email *</label>
+          <input id="helpUserOrEmail" placeholder="z.B. nils / name@mail.com" />
+        </div>
+        <div class="input-group">
+          <label>Nachricht *</label>
+          <textarea id="helpMsg" rows="4" placeholder="Beschreibe kurz dein Problem..."></textarea>
+        </div>
+        <button class="btn primary" type="submit">Ticket senden</button>
+        <p class="muted" id="helpMsgOut"></p>
+      </form>
+    </section>
+
+    <footer class="page-footer">
+      <div class="impressum-title">Impressum</div>
+      <div class="impressum-text">—</div>
+    </footer>
+  </main>
+
+  <script src="./assets/js/utils.js"></script>
+  <script src="./assets/js/storage.js"></script>
+  <script src="./assets/js/common.js"></script>
+  <script src="./assets/js/auth.js"></script>
+</body>
+</html>

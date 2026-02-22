@@ -1,0 +1,99 @@
+/* assets/css/dashboard.css (KOMPLETT ERSETZEN) */
+/* ✅ KPIs gleichmässig (Grid) */
+.dashboard .dash-kpis{
+  display:grid;
+  grid-template-columns:repeat(6, minmax(0, 1fr));
+  gap:.6rem;
+  margin-top:.75rem;
+}
+.dashboard .dash-kpis .pill{
+  width:100%;
+  text-align:center;
+}
+
+/* responsive */
+@media (max-width: 1200px){
+  .dashboard .dash-kpis{ grid-template-columns:repeat(3, minmax(0, 1fr)); }
+}
+@media (max-width: 680px){
+  .dashboard .dash-kpis{ grid-template-columns:repeat(2, minmax(0, 1fr)); }
+}
+
+.cal-head{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:1rem;
+  flex-wrap:wrap;
+}
+
+.cal-grid{
+  margin-top:.75rem;
+  display:grid;
+  grid-template-columns:repeat(7, minmax(0,1fr));
+  gap:.5rem;
+}
+
+.cal-dow{
+  font-size:.75rem;
+  color:var(--text-muted);
+  text-align:center;
+  padding:.2rem 0;
+}
+
+.cal-cell{
+  border:1px solid rgba(255,255,255,.12);
+  border-radius:12px;
+  padding:.45rem;
+  min-height:78px;
+  background:rgba(0,0,0,.12);
+}
+:root[data-theme="light"] .cal-cell{
+  border:1px solid rgba(0,0,0,.12);
+  background:rgba(0,0,0,.03);
+}
+
+.cal-cell .d{
+  font-weight:900;
+  font-size:.85rem;
+  color:var(--text-muted);
+}
+.cal-cell .v{
+  margin-top:.15rem;
+  font-weight:900;
+  font-size:.88rem;
+}
+.cal-cell .p{
+  margin-top:.1rem;
+  font-size:.78rem;
+  color:var(--text-muted);
+}
+
+.cal-cell.pos .v{color:var(--secondary)}
+.cal-cell.neg .v{color:var(--danger)}
+
+.day-list{
+  display:grid;
+  gap:.55rem;
+  margin-top:.75rem;
+}
+.day-row{
+  display:flex;
+  justify-content:space-between;
+  gap:.75rem;
+  align-items:center;
+  border:1px solid rgba(255,255,255,.10);
+  border-radius:12px;
+  padding:.55rem .65rem;
+  background:rgba(255,255,255,.05);
+}
+:root[data-theme="light"] .day-row{
+  border:1px solid rgba(0,0,0,.10);
+  background:rgba(255,255,255,.85);
+}
+.day-row .left{display:flex;flex-direction:column;gap:.1rem}
+.day-row .date{font-weight:900}
+.day-row .meta{font-size:.8rem;color:var(--text-muted)}
+.day-row .right{font-weight:900}
+.day-row.pos .right{color:var(--secondary)}
+.day-row.neg .right{color:var(--danger)}

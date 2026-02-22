@@ -1,0 +1,8 @@
+/* assets/css/auth.css (KOMPLETT ERSETZEN) */
+.auth-card{
+  width: min(720px, 100%);
+  margin: 1rem auto;
+}
+.fixed-card{min-height:280px}
+.auth-form{display:grid;gap:.75rem;margin-top:.5rem}
+.auth-modes{display:flex;gap:.5rem;flex-wrap:wrap}

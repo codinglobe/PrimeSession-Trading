@@ -1,0 +1,339 @@
+/* assets/css/calculator.css (KOMPLETT ERSETZEN) */
+
+.calc-shell .calc-head{display:flex;justify-content:space-between;gap:1rem;align-items:center;flex-wrap:wrap}
+.calc-row{display:grid;gap:1rem;margin-top:1rem}
+.row-1{grid-template-columns:1fr}
+.row-2{grid-template-columns:repeat(5,minmax(0,1fr))}
+.row-3{grid-template-columns:repeat(5,minmax(0,1fr))}
+.row-4{grid-template-columns:1fr}
+.row-5{grid-template-columns:1fr}
+
+@media (max-width: 1100px){
+  .row-2,.row-3{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media (max-width: 680px){
+  .row-2,.row-3{grid-template-columns:1fr}
+}
+
+.dual{display:grid;grid-template-columns:1fr 1fr;gap:.5rem}
+@media (max-width: 680px){.dual{grid-template-columns:1fr}}
+
+.span-2{grid-column:4 / span 2}
+
+.risk-inline{display:flex;gap:.5rem;align-items:center;flex-wrap:wrap}
+.risk-buttons{display:flex;gap:.5rem;flex-wrap:wrap}
+.risk-mini{width:90px;padding:.35rem .5rem;border-radius:10px;font-size:.9rem}
+
+.scale-buttons{display:flex;gap:.5rem;flex-wrap:wrap}
+
+.card.mini{padding:.85rem}
+
+/* Dropdown styling */
+.ps-select{
+  appearance:none;-webkit-appearance:none;-moz-appearance:none;
+  padding-right:2.25rem;
+  background:
+    linear-gradient(to bottom, rgba(255,255,255,.06), rgba(0,0,0,.08)),
+    var(--input);
+  border:1px solid rgba(255,255,255,.14);
+  color:var(--text);
+  background-image:
+    linear-gradient(to bottom, rgba(255,255,255,.06), rgba(0,0,0,.08)),
+    linear-gradient(45deg, transparent 50%, var(--text-muted) 50%),
+    linear-gradient(135deg, var(--text-muted) 50%, transparent 50%);
+  background-position:
+    0 0,
+    calc(100% - 1.05rem) 55%,
+    calc(100% - 0.75rem) 55%;
+  background-size:100% 100%,8px 8px,8px 8px;
+  background-repeat:no-repeat;
+  transition:border-color .12s ease, filter .12s ease;
+}
+:root[data-theme="light"] .ps-select{border:1px solid rgba(0,0,0,.12)}
+.ps-select:hover{filter:brightness(1.05);border-color:rgba(0,212,255,.35)}
+:root[data-theme="light"] .ps-select:hover{border-color:rgba(0,109,255,.35)}
+.ps-select:focus{outline:none;border-color:rgba(0,212,255,.55);box-shadow:var(--glow)}
+:root[data-theme="light"] .ps-select:focus{border-color:rgba(0,109,255,.55)}
+
+/* Saved trades */
+.trade-item{
+  padding:1rem;
+  border:1px solid rgba(255,255,255,.10);
+  border-radius:var(--radius-md);
+  background:rgba(255,255,255,.05);
+  margin-top:1rem;
+}
+:root[data-theme="light"] .trade-item{
+  border:1px solid rgba(0,0,0,.10);
+  background:rgba(255,255,255,.70);
+}
+.trade-head{display:flex;justify-content:space-between;gap:1rem;flex-wrap:wrap;align-items:center}
+.trade-meta{color:var(--text-muted);font-size:.9rem;margin-top:.25rem}
+.trade-actions{display:flex;gap:.5rem;flex-wrap:wrap;align-items:center}
+
+.tp-block{
+  margin-top:.75rem;
+  padding:.75rem;
+  border:1px solid rgba(255,255,255,.10);
+  border-radius:12px;
+  background:rgba(0,0,0,.10);
+}
+:root[data-theme="light"] .tp-block{border:1px solid rgba(0,0,0,.10);background:rgba(0,0,0,.03)}
+.tp-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:.5rem;margin-top:.5rem}
+.tp-field{display:grid;gap:.25rem}
+.tp-field label{font-size:.8rem;color:var(--text-muted)}
+
+.details{
+  margin-top:.75rem;
+  padding-top:.75rem;
+  border-top:1px solid rgba(255,255,255,.10);
+}
+:root[data-theme="light"] .details{border-top:1px solid rgba(0,0,0,.10)}
+
+.entry-table{width:100%;border-collapse:collapse;margin-top:.5rem}
+.entry-table th,.entry-table td{padding:.45rem .55rem;border-bottom:1px solid rgba(255,255,255,.10);text-align:left}
+:root[data-theme="light"] .entry-table th,:root[data-theme="light"] .entry-table td{border-bottom:1px solid rgba(0,0,0,.08)}
+.entry-table th{background:rgba(255,255,255,.06)}
+:root[data-theme="light"] .entry-table th{background:rgba(0,0,0,.04)}
+.entry-table input[type="text"]{width:100%}
+
+/* Modal */
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;padding:1rem;z-index:999}
+.modal.hidden{display:none}
+.modal-card{width:min(760px,100%);background:var(--panel);border:1px solid var(--border);border-radius:var(--radius-md);padding:1rem}
+.modal-head{display:flex;justify-content:space-between;align-items:center;gap:1rem}
+
+/* ✅ Smaller result cards + orders table */
+#results .card{padding:.55rem}
+#results .kpi-title{font-size:.72rem}
+#results .kpi-value{font-size:1.05rem;line-height:1.15}
+#ordersBox table{font-size:.78rem}
+#ordersBox th,#ordersBox td{padding:.20rem .32rem}
+#ordersBox h3{font-size:1.0rem}
+
+/* ✅ Saved trade rows layout */
+.trade-row{
+  display:flex;
+  gap:.5rem;
+  flex-wrap:wrap;
+  align-items:center;
+  margin-top:.45rem;
+}
+.trade-row1{justify-content:space-between}
+.trade-left{display:flex;gap:.5rem;flex-wrap:wrap;align-items:center}
+.trade-row2 .pill, .trade-row3 .pill{padding:.32rem .55rem}
+
+/* Entries: alles nebeneinander, + ganz rechts */
+.entry-order-head{
+  display:flex;
+  flex-wrap:wrap;
+  align-items:center;
+  gap:.45rem;
+}
+
+.entry-order-head input{
+  width:140px;
+  max-width:40vw;
+}
+
+/* + Button immer ganz rechts */
+.entry-order-head [data-order-addfill]{
+  margin-left:auto;
+}
+
+/* Fill rows nebeneinander */
+.fill-row{
+  display:flex;
+  flex-wrap:wrap;
+  align-items:center;
+  gap:.45rem;
+  margin-top:.35rem;
+}
+
+.fill-row input[type="datetime-local"]{ width:200px; }
+.fill-row input{ width:140px; max-width:40vw; }
+
+/* X (delete) immer ganz rechts */
+.fill-row [data-fill-del]{
+  margin-left:auto;
+}
+
+/* ============================
+   Calculator – Tabellarische Splits (Entries)
+   ============================ */
+
+/* Container pro Entry-Order */
+.entry-order{
+  border: 1px solid rgba(255,255,255,.10);
+  border-radius: 12px;
+  padding: .6rem;
+  margin-top: .6rem;
+  background: rgba(0,0,0,.12);
+}
+:root[data-theme="light"] .entry-order{
+  border: 1px solid rgba(0,0,0,.10);
+  background: rgba(255,255,255,.85);
+}
+
+/* Titelzeile (Totals) wie Tabellen-Header */
+.entry-head{
+  display:grid;
+  grid-template-columns:
+    46px           /* # */
+    minmax(170px,1.6fr)  /* Plan */
+    minmax(120px,1fr)    /* Filled */
+    minmax(120px,1fr)    /* Avg */
+    minmax(140px,1fr)    /* Fee */
+    minmax(120px,1fr)    /* Rest */
+    46px;          /* + / - */
+  gap: .45rem;
+  align-items:center;
+  padding: .45rem .55rem;
+  border-radius: 10px;
+  border: 1px solid rgba(255,255,255,.10);
+  background: rgba(255,255,255,.05);
+}
+:root[data-theme="light"] .entry-head{
+  border: 1px solid rgba(0,0,0,.10);
+  background: rgba(0,0,0,.04);
+}
+
+/* Pills in Head kompakter */
+.entry-head .pill{
+  display:inline-flex;
+  justify-content:center;
+  align-items:center;
+  width:100%;
+  padding:.28rem .45rem;
+  border-radius:10px;
+  border:1px solid rgba(255,255,255,.10);
+  background: rgba(0,0,0,.12);
+  font-size:.82rem;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+:root[data-theme="light"] .entry-head .pill{
+  border:1px solid rgba(0,0,0,.10);
+  background: rgba(255,255,255,.95);
+}
+
+/* Plus/Minus rechts als Toggle */
+.entry-head button.btn.small{
+  width:46px;
+  height:32px;
+  padding:0;
+  border-radius:10px;
+  justify-self:end;
+}
+
+/* Fill Rows – echte Tabelle (Time | Price | Qty | Fee | X) */
+.fill-row{
+  display:grid;
+  grid-template-columns:
+    210px   /* time */
+    minmax(140px, 1fr)  /* price */
+    minmax(140px, 1fr)  /* qty */
+    minmax(160px, 1fr)  /* fee */
+    46px;   /* delete/add */
+  gap:.45rem;
+  align-items:center;
+  padding:.42rem .55rem;
+  border-radius:10px;
+  border:1px solid rgba(255,255,255,.08);
+  background: rgba(0,0,0,.10);
+  margin-top:.45rem;
+}
+:root[data-theme="light"] .fill-row{
+  border:1px solid rgba(0,0,0,.08);
+  background: rgba(0,0,0,.03);
+}
+
+/* Zebra-Effekt für bessere Lesbarkeit */
+.fill-row:nth-child(even){
+  background: rgba(255,255,255,.04);
+}
+:root[data-theme="light"] .fill-row:nth-child(even){
+  background: rgba(0,0,0,.02);
+}
+
+/* Inputs in Fill Rows */
+.fill-row input{
+  width:100%;
+  height:34px;
+  padding:.25rem .45rem;
+  border-radius:10px;
+  border:1px solid rgba(255,255,255,.12);
+  background: rgba(0,0,0,.22);
+  color: var(--text);
+  font-size:.85rem;
+}
+:root[data-theme="light"] .fill-row input{
+  border:1px solid rgba(0,0,0,.12);
+  background: rgba(255,255,255,.95);
+  color:#111;
+}
+
+/* Buttons in Fill Rows */
+.fill-row .btn.small{
+  width:46px;
+  height:34px;
+  padding:0;
+  border-radius:10px;
+}
+
+/* New-Fill Row leicht “highlighted” */
+.fill-row[data-newfill]{
+  border-color: rgba(0,212,255,.35);
+  box-shadow: 0 0 0 rgba(0,0,0,0);
+}
+:root[data-theme="light"] .fill-row[data-newfill]{
+  border-color: rgba(0,109,255,.30);
+}
+
+/* Responsive: unter 900px stapeln Fill Rows */
+@media (max-width: 900px){
+  .entry-head{
+    grid-template-columns: 46px 1fr 1fr 1fr 1fr 1fr 46px;
+  }
+  .fill-row{
+    grid-template-columns: 1fr 1fr;
+  }
+  .fill-row input[type="datetime-local"]{ grid-column: 1 / -1; }
+  .fill-row .btn.small{ grid-column: 2; justify-self:end; }
+}
+
+/* Under-Card spacing */
+.trade-item .details .card h3{
+  margin-bottom:.4rem;
+}
+
+/* Grouping (Symbol / Timeframe) */
+.group-head{
+  display:flex;
+  align-items:center;
+  gap:.6rem;
+  padding:.55rem .7rem;
+  border-radius:12px;
+  border:1px solid rgba(255,255,255,.10);
+  background: rgba(255,255,255,.04);
+  margin-top:.7rem;
+}
+:root[data-theme="light"] .group-head{
+  border:1px solid rgba(0,0,0,.10);
+  background: rgba(0,0,0,.03);
+}
+
+.group-head.tf{
+  margin-top:.55rem;
+  background: rgba(0,0,0,.10);
+}
+:root[data-theme="light"] .group-head.tf{
+  background: rgba(255,255,255,.92);
+}
+
+.group-body{
+  margin-top:.55rem;
+  padding-left:.6rem;
+  border-left: 2px solid rgba(0,212,255,.18);
+}

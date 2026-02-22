@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="de-CH">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>PrimeSession Trading – Journal</title>
+  <link rel="stylesheet" href="./assets/css/base.css" />
+  <link rel="stylesheet" href="./assets/css/journal.css" />
+</head>
+<body>
+  <main class="app-container">
+    <header class="app-header">
+      <div class="logo">🚀 PrimeSession Trading</div>
+      <div class="header-right">
+        <span class="badge" id="userLabel">👤</span>
+        <button class="btn danger small hidden" id="logoutBtn">Logout</button>
+      </div>
+    </header>
+
+    <div id="impersonationBanner" class="imp-banner hidden"></div>
+
+    <nav class="nav nav-user">
+      <a href="./index.html">Dashboard</a>
+      <a href="./calculator.html">Rechner</a>
+      <a href="./journal.html" class="active">Journal</a>
+      <a href="./tickets.html">Tickets</a>
+      <a href="./profile.html">Profil</a>
+    </nav>
+
+    <nav class="nav nav-admin hidden">
+      <a href="./admin.html#dash">Dashboard</a>
+      <a href="./admin.html#tickets">Tickets</a>
+      <a href="./admin.html#users">Users</a>
+    </nav>
+
+    <section class="grid cols-3" id="journalSummary" style="margin-top:1rem"></section>
+
+    <!-- ✅ flex-grow so it reaches footer -->
+    <section class="card journal-card" style="margin-top:1rem; flex:1; display:flex; flex-direction:column;">
+      <div class="journal-top">
+        <h2>📘 Journal</h2>
+      </div>
+
+      <div class="table-container" style="margin-top:.75rem; flex:1;">
+        <table id="journalTable">
+          <thead id="journalHead"></thead>
+          <tbody id="journalBody"></tbody>
+        </table>
+      </div>
+
+      <div id="journalEmpty" class="muted" style="margin-top:1rem"></div>
+    </section>
+
+    <footer class="page-footer">
+      <div class="impressum-title">Impressum</div>
+      <div class="impressum-text">—</div>
+    </footer>
+  </main>
+
+  <script src="./assets/js/utils.js"></script>
+  <script src="./assets/js/storage.js"></script>
+  <script src="./assets/js/common.js"></script>
+  <script src="./assets/js/journal.js"></script>
+</body>
+</html>

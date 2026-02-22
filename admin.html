@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="de-CH">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>PrimeSession Trading – Admin</title>
+  <link rel="stylesheet" href="./assets/css/base.css" />
+  <link rel="stylesheet" href="./assets/css/tickets.css" />
+</head>
+<body>
+  <main class="app-container">
+    <header class="app-header">
+      <div class="logo">🚀 PrimeSession Trading – Admin</div>
+      <div class="header-right">
+        <span class="badge" id="userLabel">👤</span>
+        <button class="btn danger small hidden" id="logoutBtn">Logout</button>
+      </div>
+    </header>
+
+    <div id="impersonationBanner" class="imp-banner hidden"></div>
+
+    <nav class="nav nav-admin">
+      <a href="./admin.html#dash" id="navDash">Dashboard</a>
+      <a href="./admin.html#tickets" id="navTickets">Tickets</a>
+      <a href="./admin.html#users" id="navUsers">Users</a>
+    </nav>
+
+    <section id="viewDash" class="card" style="margin-top:1rem">
+      <h2>📊 Admin Dashboard</h2>
+      <div class="grid cols-3" id="adminKpis" style="margin-top:.75rem"></div>
+    </section>
+
+    <section id="viewTickets" class="card hidden" style="margin-top:1rem">
+      <div class="inline" style="justify-content:space-between;align-items:center;gap:1rem;flex-wrap:wrap">
+        <h2>🎫 Tickets (alle User)</h2>
+        <div class="inline" style="gap:.5rem;flex-wrap:wrap">
+          <input id="adminTicketUserSearch" placeholder="User/Email suchen..." />
+          <select id="adminTicketStatus">
+            <option value="ALL">Status: Alle</option>
+            <option value="open">Offen</option>
+            <option value="in_progress">In Bearbeitung</option>
+            <option value="done">Erledigt</option>
+            <option value="rejected">Abgelehnt</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="grid cols-2" style="margin-top:1rem; align-items:start">
+        <div class="card">
+          <h3>Liste</h3>
+          <div id="adminTicketList" class="muted">—</div>
+        </div>
+
+        <div class="card">
+          <h3>Detail</h3>
+          <div id="adminTicketDetail" class="muted">Wähle links ein Ticket.</div>
+        </div>
+      </div>
+    </section>
+
+    <section id="viewUsers" class="card hidden" style="margin-top:1rem">
+      <div class="inline" style="justify-content:space-between;align-items:center;gap:1rem;flex-wrap:wrap">
+        <h2>👥 Users</h2>
+        <input id="userSearch" placeholder="Suche (User/Email)..." />
+      </div>
+
+      <div class="table-container" style="margin-top:.75rem">
+        <table>
+          <thead>
+            <tr>
+              <th>User</th>
+              <th>Email</th>
+              <th>Active</th>
+              <th>Online</th>
+              <th>Trades</th>
+              <th>GuV brutto</th>
+              <th>Fee</th>
+              <th>GuV netto</th>
+              <th>Tickets</th>
+              <th>Offen</th>
+              <th>In Bearb.</th>
+              <th>Abgelehnt</th>
+              <th>Erledigt</th>
+              <th>Aktionen</th>
+            </tr>
+          </thead>
+          <tbody id="usersBody"></tbody>
+        </table>
+      </div>
+      <p class="small muted" style="margin-top:.75rem">
+        Online = in diesem Browser aktuell aktiv (oder zuletzt gesehen, falls gespeichert).
+      </p>
+    </section>
+
+    <footer class="page-footer">
+      <div class="impressum-title">Impressum</div>
+      <div class="impressum-text">—</div>
+    </footer>
+  </main>
+
+  <script src="./assets/js/utils.js"></script>
+  <script src="./assets/js/storage.js"></script>
+  <script src="./assets/js/common.js"></script>
+  <script src="./assets/js/admin.js"></script>
+</body>
+</html>

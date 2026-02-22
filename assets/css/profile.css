@@ -1,0 +1,4 @@
+/* assets/css/profile.css (KOMPLETT ERSETZEN) */
+.muted{color:var(--text-muted)}
+.small{font-size:.9rem;color:var(--text-muted)}
+.inline{display:flex;gap:.5rem;flex-wrap:wrap;align-items:center}

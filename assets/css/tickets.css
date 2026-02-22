@@ -1,0 +1,37 @@
+/* assets/css/tickets.css (KOMPLETT ERSETZEN) */
+.tickets-head{display:flex;justify-content:space-between;gap:1rem;align-items:center;flex-wrap:wrap}
+.ticket-list{display:grid;gap:.6rem}
+.ticket-item{
+  border:1px solid var(--border);
+  border-radius:12px;
+  padding:.6rem .7rem;
+  background:rgba(255,255,255,.05);
+  cursor:pointer;
+}
+:root[data-theme="light"] .ticket-item{background:rgba(255,255,255,.85)}
+.ticket-item.active{border-color:rgba(0,212,255,.45);box-shadow:var(--glow)}
+.badge2{
+  display:inline-flex;align-items:center;gap:.25rem;
+  border:1px solid var(--border);
+  padding:.12rem .45rem;border-radius:999px;
+  font-size:.82rem;color:var(--text-muted);
+}
+.ticket-meta{display:flex;gap:.35rem;flex-wrap:wrap;margin-top:.25rem}
+
+.chat-box{
+  border:1px solid var(--border);
+  border-radius:12px;
+  background:rgba(0,0,0,.10);
+  padding:.6rem;
+  max-height:440px;
+  overflow:auto;
+}
+:root[data-theme="light"] .chat-box{background:rgba(0,0,0,.03)}
+.msg{padding:.45rem .55rem;border-radius:12px;margin-bottom:.5rem}
+.msg.user{background:rgba(0,212,255,.10);border:1px solid rgba(0,212,255,.20)}
+.msg.admin{background:rgba(255,77,77,.10);border:1px solid rgba(255,77,77,.20)}
+.msg-head{display:flex;justify-content:space-between;gap:1rem;font-size:.82rem;color:var(--text-muted);margin-bottom:.25rem}
+
+.attach{margin-top:.35rem;display:flex;gap:.5rem;flex-wrap:wrap}
+.attach a{font-size:.85rem}
+.reply{margin-top:.75rem}

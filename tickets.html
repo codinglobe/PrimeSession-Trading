@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="de-CH">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>PrimeSession Trading – Tickets</title>
+  <link rel="stylesheet" href="./assets/css/base.css" />
+  <link rel="stylesheet" href="./assets/css/tickets.css" />
+</head>
+<body>
+  <main class="app-container">
+    <header class="app-header">
+      <div class="logo">🚀 PrimeSession Trading</div>
+      <div class="header-right">
+        <span class="badge" id="userLabel">👤</span>
+        <button class="btn danger small hidden" id="logoutBtn">Logout</button>
+      </div>
+    </header>
+
+    <div id="impersonationBanner" class="imp-banner hidden"></div>
+
+    <nav class="nav nav-user">
+      <a href="./index.html">Dashboard</a>
+      <a href="./calculator.html">Rechner</a>
+      <a href="./journal.html">Journal</a>
+      <a href="./tickets.html" class="active">Tickets</a>
+      <a href="./profile.html">Profil</a>
+    </nav>
+
+    <nav class="nav nav-admin hidden">
+      <a href="./admin.html#dash">Dashboard</a>
+      <a href="./admin.html#tickets" class="active">Tickets</a>
+      <a href="./admin.html#users">Users</a>
+    </nav>
+
+    <section class="grid cols-2" style="margin-top:1rem; align-items:start">
+      <section class="card">
+        <div class="tickets-head">
+          <h2>🎫 Deine Tickets</h2>
+          <div class="inline">
+            <select id="ticketStatusFilter">
+              <option value="ALL">Status: ALL</option>
+              <option value="open">open</option>
+              <option value="in_progress">in_progress</option>
+              <option value="done">done</option>
+              <option value="rejected">rejected</option>
+            </select>
+            <button class="btn small primary" id="toggleNew">➕ Neu</button>
+          </div>
+        </div>
+
+        <div id="newTicketBox" class="card hidden" style="margin-top:.75rem">
+          <h3>Neues Ticket</h3>
+          <div class="grid cols-2" style="margin-top:.5rem">
+            <div class="input-group">
+              <label>Titel *</label>
+              <input id="newTitle" />
+            </div>
+
+            <div class="input-group">
+              <label>Typ</label>
+              <div class="inline">
+                <label class="small"><input type="radio" name="ntype" value="bug" checked> Fehler</label>
+                <label class="small"><input type="radio" name="ntype" value="wish"> Wunsch</label>
+              </div>
+            </div>
+
+            <div class="input-group" style="grid-column:1/-1">
+              <label>Nachricht *</label>
+              <textarea id="newMsg" rows="4"></textarea>
+            </div>
+
+            <div class="input-group" style="grid-column:1/-1">
+              <label>Anhang (optional)</label>
+              <input id="newFile" type="file" accept="image/*,.pdf" />
+              <div class="small muted">Wird als Base64 gespeichert (localStorage). Bitte kleine Dateien.</div>
+            </div>
+          </div>
+
+          <div class="inline" style="justify-content:flex-end; margin-top:.5rem">
+            <button class="btn link" id="cancelNew">Abbrechen</button>
+            <button class="btn primary" id="createTicket">Erstellen</button>
+          </div>
+          <div class="small muted" id="newOut"></div>
+        </div>
+
+        <div id="ticketList" class="ticket-list muted" style="margin-top:.75rem">—</div>
+      </section>
+
+      <section class="card">
+        <h2>💬 Ticket Chat</h2>
+        <div id="ticketDetail" class="muted">Wähle links ein Ticket.</div>
+      </section>
+    </section>
+
+    <footer class="page-footer">
+      <div class="impressum-title">Impressum</div>
+      <div class="impressum-text">—</div>
+    </footer>
+  </main>
+
+  <script src="./assets/js/utils.js"></script>
+  <script src="./assets/js/storage.js"></script>
+  <script src="./assets/js/common.js"></script>
+  <script src="./assets/js/tickets.js"></script>
+</body>
+</html>
