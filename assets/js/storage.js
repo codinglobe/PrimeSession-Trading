@@ -1,4 +1,4 @@
-// assets/js/storage.js
+// assets/js/storage.js (KOMPLETT ERSETZEN)
 (function(){
   window.PS = window.PS || {};
   const STORAGE_KEY = (window.PS_CONFIG?.STORAGE_KEY) || 'primeSessionTrading_v4.5';
@@ -57,6 +57,35 @@
     return data;
   }
 
+  // Heuristik: hat der aktuelle User “echte” Daten?
+  function hasMeaningfulData(data, username){
+    try{
+      const u = username || data.currentUser || 'guest';
+      const prof = data?.profiles?.[u];
+      if(!prof) return false;
+      const c = (prof.calculatorTrades?.length||0);
+      const j = (prof.journalTrades?.length||0);
+      const t = (prof.tickets?.length||0);
+      return (c + j + t) > 0;
+    } catch { return false; }
+  }
+
+  // Frischer Browser / Inkognito: local hat keine echten Daten und noch nie cloud synced
+  function isFreshEmptyLocal(data){
+    const synced = String(data?._meta?.cloudSyncedAt || '').trim();
+    if(synced) return false;
+    return !hasMeaningfulData(data, data.currentUser);
+  }
+
+  function backupLocal(tag){
+    try{
+      const snap = localStorage.getItem(STORAGE_KEY);
+      if(!snap) return;
+      const k = `${STORAGE_KEY}__backup__${new Date().toISOString().replaceAll(':','-')}__${tag||'auto'}`;
+      localStorage.setItem(k, snap);
+    } catch {}
+  }
+
   function load(){
     const raw = localStorage.getItem(STORAGE_KEY);
     const parsed = raw ? safeParse(raw) : null;
@@ -87,7 +116,6 @@
   }
 
   function sanitizeForCloud(data){
-    // pro Supabase-Account speichern wir nur guest + currentUser
     const u = data.currentUser || 'guest';
     const out = JSON.parse(JSON.stringify(data));
     out.profiles = out.profiles || {};
@@ -164,6 +192,28 @@
     }
   }
 
+  // Optional: Pull erzwingen (Debug)
+  async function cloudPullNow({ username, email } = {}){
+    const user = await getUser();
+    if(!user) return null;
+    const remote = await cloudFetch(user.id);
+    if(remote?.data){
+      backupLocal('before_pull');
+      const d = remote.data;
+      if(username){
+        d.currentUser = username;
+        d.profiles = d.profiles || {};
+        d.profiles[username] = d.profiles[username] || mkProfile(false, email || user.email || '');
+        d.profiles[username].email = email || user.email || d.profiles[username].email || '';
+      }
+      touch(d);
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(d));
+      return d;
+    }
+    return null;
+  }
+
+  // Nach Login: remote darf nicht durch “frisches leeres local” überschrieben werden
   async function cloudSyncAfterAuth({ username, email }){
     const user = await getUser();
     if(!user) return;
@@ -181,11 +231,15 @@
     const localUpdated = Date.parse(local?._meta?.updatedAt || '') || 0;
     const remoteUpdated = remote?.updated_at ? Date.parse(remote.updated_at) : 0;
 
-    if(remote && remote.data && remoteUpdated >= localUpdated){
-      // remote wins
+    const remoteHas = !!(remote && remote.data && hasMeaningfulData(remote.data, u));
+    const localFreshEmpty = isFreshEmptyLocal(local);
+
+    // ✅ wichtigste Schutzregel:
+    // Wenn remote Daten hat und local ist nur "frisch leer" -> remote gewinnt (niemals überschreiben)
+    if(remote && remote.data && remoteHas && localFreshEmpty){
+      backupLocal('fresh_empty_local_remote_wins');
       local = remote.data;
 
-      // ensure profile exists
       local.currentUser = u;
       local.profiles = local.profiles || {};
       local.profiles.guest = local.profiles.guest || mkProfile(false,'');
@@ -194,15 +248,35 @@
 
       touch(local);
       localStorage.setItem(STORAGE_KEY, JSON.stringify(local));
-    } else {
-      // local wins -> push
+      return;
+    }
+
+    // Normalfall: “neuere” Seite gewinnt
+    if(remote && remote.data && remoteUpdated >= localUpdated){
+      backupLocal('remote_wins');
+      local = remote.data;
+
+      local.currentUser = u;
+      local.profiles = local.profiles || {};
+      local.profiles.guest = local.profiles.guest || mkProfile(false,'');
+      local.profiles[u] = local.profiles[u] || mkProfile(false, email || user.email || '');
+      local.profiles[u].email = email || user.email || local.profiles[u].email || '';
+
       touch(local);
       localStorage.setItem(STORAGE_KEY, JSON.stringify(local));
-      await cloudUpsert(user.id, local);
+      return;
     }
+
+    // local wins -> push
+    touch(local);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(local));
+    await cloudUpsert(user.id, local);
+
+    local._meta = local._meta || {};
+    local._meta.cloudSyncedAt = nowIso();
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(local));
   }
 
-  // JSON Backup (download)
   function exportJSON(){
     const data = load();
     const blob = new Blob([JSON.stringify(data, null, 2)], { type:'application/json' });
@@ -231,6 +305,7 @@
 
     cloudSyncAfterAuth,
     cloudPushNow,
+    cloudPullNow,
 
     exportJSON,
     importJSONFile
