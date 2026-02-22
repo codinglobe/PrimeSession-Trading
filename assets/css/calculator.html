@@ -1,0 +1,221 @@
+<!doctype html>
+<html lang="de-CH">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>PrimeSession Trading – Rechner</title>
+  <link rel="stylesheet" href="./assets/css/base.css" />
+  <link rel="stylesheet" href="./assets/css/calculator.css" />
+</head>
+<body>
+  <main class="app-container">
+    <header class="app-header">
+      <div class="logo">🚀 PrimeSession Trading</div>
+      <div class="header-right">
+        <span class="badge" id="userLabel">👤</span>
+        <button class="btn danger small hidden" id="logoutBtn">Logout</button>
+      </div>
+    </header>
+
+    <div id="impersonationBanner" class="imp-banner hidden"></div>
+
+    <nav class="nav nav-user">
+      <a href="./index.html">Dashboard</a>
+      <a href="./calculator.html" class="active">Rechner</a>
+      <a href="./journal.html">Journal</a>
+      <a href="./tickets.html">Tickets</a>
+      <a href="./profile.html">Profil</a>
+    </nav>
+
+    <nav class="nav nav-admin hidden">
+      <a href="./admin.html#dash">Dashboard</a>
+      <a href="./admin.html#tickets">Tickets</a>
+      <a href="./admin.html#users">Users</a>
+    </nav>
+
+    <section class="card calc-shell">
+      <div class="calc-head">
+        <h2>📊 Rechner</h2>
+        <div class="inline">
+          <button class="btn small" id="hideCalcBtn">Hide</button>
+          <button class="btn small hidden" id="showCalcBtn">Show</button>
+        </div>
+      </div>
+
+      <div id="calcPanel">
+        <!-- Zeile 1 -->
+        <div class="calc-row row-1">
+          <div class="input-group">
+            <label>Balance (USDT)</label>
+            <input id="balance" placeholder="6'117,67" />
+          </div>
+        </div>
+
+        <!-- Zeile 2: 5 Spalten -->
+        <div class="calc-row row-2">
+          <div class="input-group">
+            <label>Symbol</label>
+            <select id="symbol" class="ps-select">
+              <option value="ADAUSDT">ADAUSDT</option>
+              <option value="BNBUSDT">BNBUSDT</option>
+              <option value="BTCUSDT" selected>BTCUSDT</option>
+              <option value="ETHUSDT">ETHUSDT</option>
+              <option value="SOLUSDT">SOLUSDT</option>
+              <option value="XAGUSDT">XAGUSDT</option>
+              <option value="XAUUSDT">XAUUSDT</option>
+              <option value="XRPUSDT">XRPUSDT</option>
+            </select>
+          </div>
+
+          <div class="input-group">
+            <label>Timeframe</label>
+            <select id="timeframe" class="ps-select">
+              <option>5m</option><option>15m</option><option selected>30m</option>
+              <option>1h</option><option>2h</option><option>4h</option><option>1d</option>
+            </select>
+          </div>
+
+          <div class="input-group">
+            <label>ID</label>
+            <input id="title" placeholder="z.B. BTC Long Zone" />
+          </div>
+
+          <div class="input-group">
+            <label>Setup Time (UTC+1)</label>
+            <input id="setupTime" type="datetime-local" step="60" />
+          </div>
+
+          <div class="input-group">
+            <label>Leverage</label>
+            <input id="leverage" type="number" min="1" max="125" />
+          </div>
+        </div>
+
+        <!-- Zeile 3: 5 Spalten -->
+        <div class="calc-row row-3">
+          <div class="input-group">
+            <label>Risk %</label>
+            <div class="risk-inline">
+              <div class="risk-buttons" id="riskButtons"></div>
+              <button class="btn small" id="riskManualToggle">Manuell</button>
+              <input id="riskPercent" class="risk-mini hidden" placeholder="0.50" />
+            </div>
+          </div>
+
+          <div class="input-group">
+            <label>Stop Loss</label>
+            <input id="stopLoss" placeholder="SL" />
+          </div>
+
+          <div class="input-group">
+            <label>Entry Mode</label>
+            <div class="inline">
+              <button class="btn small" id="modeScaledBtn">Skaliert</button>
+              <button class="btn small" id="modeSingleBtn">Single</button>
+            </div>
+          </div>
+
+          <!-- Spalte 4: Zone -->
+          <div class="input-group" id="zoneWrap">
+            <label>Unterer / Oberer Preis</label>
+            <div class="dual">
+              <input id="lowerPrice" placeholder="Zone Min" />
+              <input id="upperPrice" placeholder="Zone Max" />
+            </div>
+          </div>
+
+          <!-- Single Entry soll Spalte 4-5 spannen -->
+          <div class="input-group hidden span-2" id="singleWrap">
+            <label>Single Entry Price</label>
+            <input id="singleEntryPrice" placeholder="Entry" />
+          </div>
+
+          <!-- Spalte 5: Orders -->
+          <div class="input-group" id="orderCountGroup">
+            <label>Anzahl Orders</label>
+            <input id="orderCount" type="number" min="3" max="20" value="5" />
+          </div>
+        </div>
+
+        <!-- Zeile 4 -->
+        <div class="calc-row row-4">
+          <div class="input-group">
+            <label>Scale</label>
+            <div class="scale-buttons" id="scaleButtons"></div>
+          </div>
+        </div>
+
+        <!-- optional -->
+        <div class="calc-row row-5" id="chartRow">
+          <div class="input-group">
+            <label>Chart Link (optional)</label>
+            <input id="chartLink" placeholder="https://..." />
+          </div>
+        </div>
+
+        <div class="grid cols-3" id="results" style="margin-top:1rem"></div>
+
+        <div class="card mini" id="ordersBox" style="margin-top:1rem">
+          <h3>Orders</h3>
+          <div class="table-container" style="margin-top:.75rem">
+            <table>
+              <thead>
+                <tr><th>#</th><th>Preis</th><th>Menge</th><th>Notional</th><th>Anteil %</th></tr>
+              </thead>
+              <tbody id="ordersBody"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="card mini hidden" id="singleBox" style="margin-top:1rem">
+          <h3>Single Entry</h3>
+          <div id="singleSummary" class="small muted"></div>
+        </div>
+
+        <div class="inline" style="margin-top:1rem">
+          <button class="btn primary" id="saveTrade">💾 Trade speichern</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="card" style="margin-top:1rem">
+      <h2>💾 Gespeicherte Trades</h2>
+      <div id="calcTrades"></div>
+    </section>
+
+    <div class="modal hidden" id="journalModal">
+      <div class="modal-card">
+        <div class="modal-head">
+          <strong>In Journal übernehmen</strong>
+          <button class="btn small danger" id="modalClose">X</button>
+        </div>
+        <div class="small muted" id="modalInfo"></div>
+
+        <div class="grid cols-2" style="margin-top:1rem">
+          <div class="input-group">
+            <label>Open Time (UTC+1) inkl. Sekunden</label>
+            <input id="modalOpenTime" type="datetime-local" step="1" />
+          </div>
+        </div>
+
+        <div class="inline" style="margin-top:1rem; justify-content:flex-end">
+          <button class="btn link" id="modalCancel">Abbrechen</button>
+          <button class="btn primary" id="modalConfirm">Übernehmen</button>
+        </div>
+      </div>
+    </div>
+
+    <footer class="page-footer">
+      <div class="impressum-title">Impressum</div>
+      <div class="impressum-text">—</div>
+    </footer>
+  </main>
+
+	<script src="./assets/js/config.js"></script>
+	<script type="module" src="./assets/js/supabaseClient.js"></script>
+  <script src="./assets/js/utils.js"></script>
+  <script src="./assets/js/storage.js"></script>
+  <script src="./assets/js/common.js"></script>
+  <script src="./assets/js/calculator.js"></script>
+</body>
+</html>

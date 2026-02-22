@@ -1,0 +1,175 @@
+<!doctype html>
+<html lang="de-CH">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>PrimeSession Trading – Profil</title>
+  <link rel="stylesheet" href="./assets/css/base.css" />
+  <link rel="stylesheet" href="./assets/css/profile.css" />
+</head>
+<body>
+  <main class="app-container">
+    <header class="app-header">
+      <div class="logo">🚀 PrimeSession Trading</div>
+      <div class="header-right">
+        <span class="badge" id="userLabel">👤</span>
+        <button class="btn danger small hidden" id="logoutBtn">Logout</button>
+      </div>
+    </header>
+
+    <div id="impersonationBanner" class="imp-banner hidden"></div>
+
+    <nav class="nav nav-user">
+      <a href="./index.html">Dashboard</a>
+      <a href="./calculator.html">Rechner</a>
+      <a href="./journal.html">Journal</a>
+      <a href="./tickets.html">Tickets</a>
+      <a href="./profile.html" class="active">Profil</a>
+    </nav>
+
+    <nav class="nav nav-admin hidden">
+      <a href="./admin.html#dash">Dashboard</a>
+      <a href="./admin.html#tickets">Tickets</a>
+      <a href="./admin.html#users" class="active">Users</a>
+    </nav>
+
+    <section class="grid cols-2" style="margin-top:1rem">
+      <section class="card">
+        <h2>⚙️ Einstellungen</h2>
+
+        <div class="grid cols-2" style="margin-top:.75rem">
+          <div class="input-group">
+            <label>Theme</label>
+            <select id="setTheme">
+              <option value="dark">Dark</option>
+              <option value="light">Light</option>
+            </select>
+            <div class="small muted">Gilt global für alle Seiten.</div>
+          </div>
+
+          <div class="input-group">
+            <label>Default Timeframe</label>
+            <select id="setTF">
+              <option>5m</option><option>15m</option><option>30m</option>
+              <option>1h</option><option>2h</option><option>4h</option><option>1d</option>
+            </select>
+          </div>
+
+          <div class="input-group">
+            <label>Default Risk %</label>
+            <input id="setRisk" placeholder="0.50" />
+          </div>
+
+          <div class="input-group">
+            <label>Default Leverage</label>
+            <input id="setLev" type="number" min="1" max="125" />
+          </div>
+
+          <div class="input-group">
+            <label>Default Orders</label>
+            <input id="setOrders" type="number" min="3" max="20" />
+          </div>
+
+          <div class="input-group">
+            <label>Default Scale</label>
+            <select id="setScale">
+              <option value="flat">Flat</option>
+              <option value="aufsteigend">Aufsteigend</option>
+              <option value="absteigend">Absteigend</option>
+            </select>
+          </div>
+
+          <div class="input-group" style="grid-column:1/-1">
+            <label>Chart Link im Rechner anzeigen</label>
+            <select id="setChartLink">
+              <option value="false">Nein</option>
+              <option value="true">Ja</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="card" style="margin-top:1rem">
+          <h3>🎯 TP Schema</h3>
+          <div class="grid cols-2" style="margin-top:.5rem">
+            <div class="input-group">
+              <label>Anzahl TPs</label>
+              <input id="tpCount" type="number" min="1" max="6" />
+            </div>
+            <div class="input-group">
+              <label>Runner %</label>
+              <input id="runnerPct" placeholder="10" />
+            </div>
+          </div>
+
+          <div class="grid cols-3" style="margin-top:.5rem" id="tpPercentsGrid"></div>
+          <p class="small muted" style="margin-top:.5rem">TP% + Runner% muss 100 ergeben.</p>
+        </div>
+
+        <div class="inline" style="margin-top:.75rem">
+          <button class="btn primary" id="saveSettings">Speichern</button>
+          <span class="muted" id="saveMsg"></span>
+        </div>
+      </section>
+
+      <section class="card">
+        <h2>🔐 Konto</h2>
+
+        <div class="input-group" style="margin-top:.5rem">
+          <label>Aktuelles Passwort *</label>
+          <input id="curPass" type="password" autocomplete="current-password" />
+        </div>
+
+        <div class="card" style="margin-top:.75rem">
+          <h3>Email ändern</h3>
+          <div class="input-group">
+            <label>Neue Email</label>
+            <input id="newEmail" type="email" placeholder="name@mail.com" />
+          </div>
+          <button class="btn small primary" id="changeEmailBtn" style="margin-top:.5rem">Email ändern</button>
+          <div class="small muted" id="emailMsg"></div>
+        </div>
+
+        <div class="card" style="margin-top:.75rem">
+          <h3>Passwort ändern</h3>
+          <div class="input-group">
+            <label>Neues Passwort</label>
+            <input id="newPass" type="password" autocomplete="new-password" />
+          </div>
+          <div class="input-group">
+            <label>Neues Passwort wiederholen</label>
+            <input id="newPass2" type="password" autocomplete="new-password" />
+          </div>
+          <button class="btn small primary" id="changePassBtn" style="margin-top:.5rem">Passwort ändern</button>
+          <div class="small muted" id="passMsg"></div>
+        </div>
+
+        <hr class="sep">
+
+        <h3>🧹 Datenverwaltung</h3>
+        <div class="grid cols-1" style="gap:.6rem;margin-top:.5rem">
+          <button class="btn danger" id="delCalc">Rechner-Trades löschen</button>
+          <button class="btn danger" id="delJournal">Journal-Trades löschen</button>
+          <button class="btn danger" id="delTickets">Tickets löschen</button>
+        </div>
+
+        <hr class="sep">
+
+        <button class="btn danger" id="closeAccount">Konto schließen (Login inaktiv)</button>
+        <p class="small muted" style="margin-top:.5rem">Konto schließen setzt deinen Account auf inaktiv. Nur Admin kann reaktivieren.</p>
+      </section>
+    </section>
+
+    <footer class="page-footer">
+      <div class="impressum-title">Impressum</div>
+      <div class="impressum-text">—</div>
+    </footer>
+  </main>
+
+	<script src="./assets/js/config.js"></script>
+	<script type="module" src="./assets/js/supabaseClient.js"></script>
+  <script src="./assets/js/utils.js"></script>
+  <script src="./assets/js/storage.js"></script>
+  <script src="./assets/js/common.js"></script>
+  <script src="./assets/js/profile.js"></script>
+</body>
+</html>
