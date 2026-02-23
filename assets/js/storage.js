@@ -2,6 +2,7 @@
 (function(){
   window.PS = window.PS || {};
   const STORAGE_KEY = (window.PS_CONFIG?.STORAGE_KEY) || 'primeSessionTrading_v4.5';
+  const LEGACY_STORAGE_KEYS = ['primeSessionTrading_v4.5', 'primeSessionTrading_v4'];
   const CLOUD_TABLE = 'app_data';
   const ADMIN_GLOBAL_SOURCE = 'supabase.app_data';
 
@@ -122,8 +123,22 @@
   }
 
   function load(){
-    const raw = localStorage.getItem(STORAGE_KEY);
-    const parsed = raw ? safeParse(raw) : null;
+    let raw = localStorage.getItem(STORAGE_KEY);
+    let parsed = raw ? safeParse(raw) : null;
+
+    if(!parsed){
+      for(const key of LEGACY_STORAGE_KEYS){
+        if(!key || key === STORAGE_KEY) continue;
+        const legacyRaw = localStorage.getItem(key);
+        const legacyParsed = legacyRaw ? safeParse(legacyRaw) : null;
+        if(!legacyParsed) continue;
+
+        parsed = legacyParsed;
+        try { localStorage.setItem(STORAGE_KEY, JSON.stringify(legacyParsed)); } catch {}
+        break;
+      }
+    }
+
     const data = parsed || baseData();
 
     data.profiles = data.profiles || {};
@@ -429,6 +444,7 @@
 
     const local = load();
     const localUpdated = Date.parse(local?._meta?.updatedAt || '') || 0;
+    const localSynced = Date.parse(local?._meta?.cloudSyncedAt || '') || 0;
 
     // 1) Wenn local Änderungen hat, die noch nicht hochgeladen wurden -> push
     if(localUpdated > localSynced + EPS_MS){
@@ -502,6 +518,7 @@
 
   PS.storage = {
     STORAGE_KEY,
+    LEGACY_STORAGE_KEYS,
     load,
     save,
 
