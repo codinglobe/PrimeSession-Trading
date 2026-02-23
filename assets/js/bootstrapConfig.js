@@ -44,13 +44,74 @@
     }
   }
 
+<<<<<<< codex/configure-supabase-settings
+  function detectEnvName(configJson) {
+    const queryEnv = new URLSearchParams(window.location.search).get('ps_env') || '';
+    const forced = String(queryEnv).trim();
+    if (forced) {
+      try { localStorage.setItem(ENV_STORAGE_KEY, forced); } catch {}
+      return forced;
+    }
+
+    const stored = (() => {
+      try { return localStorage.getItem(ENV_STORAGE_KEY) || ''; } catch { return ''; }
+    })();
+    if (stored) return stored;
+
+    const fromConfig = String(configJson?.defaultEnvironment || '').trim();
+    if (fromConfig) return fromConfig;
+
+    const host = String(window.location.hostname || '').toLowerCase();
+    if (host.includes('test') || host.includes('staging') || host.includes('dev') || host === 'localhost' || host === '127.0.0.1') {
+      return 'test';
+    }
+    return 'production';
+  }
+
+  function applyEnvironment(configJson, target) {
+    mergeRuntimeConfig(target, configJson);
+
+    const envName = detectEnvName(configJson);
+    const envMap = (configJson && typeof configJson.environments === 'object') ? configJson.environments : null;
+    const envConfig = envMap ? envMap[envName] : null;
+
+    if (envConfig) {
+      mergeRuntimeConfig(target, envConfig, { overwrite: true });
+    }
+
+    target.RUNTIME_ENV = envName;
+    const baseStorageKey = target.STORAGE_KEY || 'primeSessionTrading_v4.5';
+    target.STORAGE_KEY = `${baseStorageKey}__${envName}`;
+
+    window.PS = window.PS || {};
+    window.PS.setRuntimeEnv = (nextEnv) => {
+      const env = String(nextEnv || '').trim();
+      if (!env) return;
+      try { localStorage.setItem(ENV_STORAGE_KEY, env); } catch {}
+      window.location.reload();
+    };
+  }
+
+=======
+>>>>>>> Snapshot-0001
   window.PS_CONFIG = window.PS_CONFIG || {};
 
   window.PS = window.PS || {};
   window.PS.configReady = (async () => {
+<<<<<<< codex/configure-supabase-settings
+    const runtimeJson = await loadConfigJson();
+    if (runtimeJson) applyEnvironment(runtimeJson, window.PS_CONFIG);
+    else {
+      const envName = detectEnvName(null);
+      window.PS_CONFIG.RUNTIME_ENV = envName;
+      const baseStorageKey = window.PS_CONFIG.STORAGE_KEY || 'primeSessionTrading_v4.5';
+      window.PS_CONFIG.STORAGE_KEY = `${baseStorageKey}__${envName}`;
+    }
+=======
     // Optional runtime file for cloud/static hosting.
     const runtimeJson = await loadConfigJson();
     mergeRuntimeConfig(window.PS_CONFIG, runtimeJson);
+>>>>>>> Snapshot-0001
     return window.PS_CONFIG;
   })();
 })();
