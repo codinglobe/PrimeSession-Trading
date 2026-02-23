@@ -320,6 +320,22 @@
     return out;
   }
 
+  function buildScaledPercents(n, mode, dir){
+    const safeN = Math.max(1, Number(n)||1);
+    if(mode === 'flat') return buildEqualPercents(safeN);
+
+    let increaseWithIndex = (mode === 'aufsteigend');
+    if(dir === 'SHORT') increaseWithIndex = !increaseWithIndex;
+
+    const weights = Array.from({length:safeN}, (_, i)=> increaseWithIndex ? (i+1) : (safeN-i));
+    const totalW = weights.reduce((a,b)=>a+b,0) || 1;
+
+    const out = weights.map(w => Number(((w/totalW)*100).toFixed(2)));
+    const sum = out.reduce((a,b)=>a+b,0);
+    out[out.length-1] = Number((out[out.length-1] + (100-sum)).toFixed(2));
+    return out;
+  }
+
   function allocateQtyByPercentsMin(totalQty, percents, pmap){
     const dec = pmap.qty||0;
     const step = stepQty(pmap);
@@ -448,7 +464,7 @@
     if(els.orderCount && Number(els.orderCount.value) !== usedCount) els.orderCount.value = String(usedCount);
 
     const prices = buildPriceLadderDirectional(i.lower,i.upper,usedCount,dir);
-    const percents = buildEqualPercents(usedCount);
+    const percents = buildScaledPercents(usedCount, state.scaleMode, dir);
 
     const qtys = allocateQtyByPercentsMin(totalQty, percents, pmap);
 
