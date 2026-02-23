@@ -71,23 +71,47 @@
     return null;
   }
 
-  function tryAdminLogin(identifier, password){
+  async function tryAdminLogin(identifier, password){
     const adminUser = String(window.PS_CONFIG?.ADMIN_USERNAME || 'admin').trim();
-    const adminPass = String(window.PS_CONFIG?.ADMIN_PASSWORD || 'admin123').trim();
-    if(!identifier || !password) return false;
-    if(identifier.toLowerCase() !== adminUser.toLowerCase()) return false;
-    if(password !== adminPass) return false;
+    const adminEmail = String(window.PS_CONFIG?.ADMIN_EMAIL || '').trim().toLowerCase();
+    const ident = String(identifier || '').trim().toLowerCase();
+    const isAdminIdent = ident === adminUser.toLowerCase() || (adminEmail && ident === adminEmail);
+
+    if(!isAdminIdent) return { handled:false };
+    if(!window.PS.supabase || !adminEmail){
+      return {
+        handled:true,
+        ok:false,
+        msg:'Admin-Login benötigt Supabase + ADMIN_EMAIL Konfiguration.'
+      };
+    }
+
+    const { data: authRes, error } = await window.PS.supabase.auth.signInWithPassword({
+      email: adminEmail,
+      password
+    });
+
+    if(error || !authRes?.user){
+      return {
+        handled:true,
+        ok:false,
+        msg:'Admin Login fehlgeschlagen (Supabase Email/Passwort).'
+      };
+    }
+
+    await PS.storage.cloudSyncAfterAuth({ username: 'admin', email: adminEmail });
 
     const d = PS.storage.load();
     d.currentUser = 'admin';
     d.impersonateUser = null;
     d.profiles = d.profiles || {};
-    d.profiles.admin = d.profiles.admin || PS.storage.mkProfile(null, true, '');
+    d.profiles.admin = d.profiles.admin || PS.storage.mkProfile(true, adminEmail);
+    d.profiles.admin.email = adminEmail;
     d.profiles.admin.flag = true;
     d.profiles.admin.active = true;
     d.profiles.admin.lastLoginAt = new Date().toISOString();
     PS.storage.save(d, { cloud:false });
-    return true;
+    return { handled:true, ok:true };
   }
 
   loginForm?.addEventListener('submit', async (e)=>{
@@ -98,8 +122,13 @@
     const password = (loginPass.value||'').trim();
     if(!identifier || !password) return (authMsg.textContent='Email/Password fehlt.');
 
-    if(tryAdminLogin(identifier, password)){
-      location.href = './admin.html#dash';
+    const adminAttempt = await tryAdminLogin(identifier, password);
+    if(adminAttempt?.handled){
+      if(adminAttempt.ok){
+        location.href = './admin.html#dash';
+      } else {
+        authMsg.textContent = adminAttempt.msg || 'Admin Login fehlgeschlagen.';
+      }
       return;
     }
 
