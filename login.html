@@ -26,8 +26,8 @@
         <h2 style="margin-top:.75rem">👤 Login</h2>
         <form id="loginForm" class="auth-form">
           <div class="input-group">
-            <label>Username</label>
-            <input id="loginUser" autocomplete="username" />
+            <label>Email (oder Admin Username)</label>
+            <input id="loginUser" autocomplete="username" placeholder="name@mail.com oder admin" />
           </div>
           <div class="input-group">
             <label>Password</label>
@@ -57,7 +57,7 @@
       </div>
 
       <p class="muted" id="authMsg"></p>
-      <p class="small muted">Admin: <strong>admin</strong> / <strong>admin123</strong></p>
+      <p class="small muted">Admin Login lokal: <strong>admin</strong> / <strong>admin123</strong> (oder via Cloudflare ADMIN_* Variablen).</p>
     </section>
 
     <section class="card auth-card fixed-card" style="margin-top:1rem">

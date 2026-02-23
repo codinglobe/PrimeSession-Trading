@@ -53,7 +53,10 @@
       currentUser: 'guest',
       impersonateUser: null,
       ui: {},
-      profiles: { guest: mkProfile(false,'') },
+      profiles: {
+        guest: mkProfile(false,''),
+        admin: mkProfile(true,'')
+      },
       _meta: {
         updatedAt: nowIso(),
         cloudSyncedAt: '',
@@ -111,9 +114,16 @@
 
     data.profiles = data.profiles || {};
     data.profiles.guest = data.profiles.guest || mkProfile(false,'');
+    data.profiles.admin = data.profiles.admin || mkProfile(true,'');
+    data.profiles.admin.flag = true;
+    data.profiles.admin.active = true;
 
     if(data.currentUser && data.currentUser !== 'guest'){
-      data.profiles[data.currentUser] = data.profiles[data.currentUser] || mkProfile(false,'');
+      if(data.currentUser === 'admin'){
+        data.profiles.admin = data.profiles.admin || mkProfile(true,'');
+      } else {
+        data.profiles[data.currentUser] = data.profiles[data.currentUser] || mkProfile(false,'');
+      }
     }
 
     for(const [u, prof] of Object.entries(data.profiles)){
