@@ -123,20 +123,19 @@
     e.preventDefault();
     authMsg.textContent = '';
 
-    try {
-      const identifier = (loginUser.value||'').trim();
-      const password = (loginPass.value||'').trim();
-      if(!identifier || !password) return (authMsg.textContent='Email/Password fehlt.');
+    const identifier = (loginUser.value||'').trim();
+    const password = (loginPass.value||'').trim();
+    if(!identifier || !password) return (authMsg.textContent='Email/Password fehlt.');
 
-      const adminAttempt = await tryAdminLogin(identifier, password);
-      if(adminAttempt?.handled){
-        if(adminAttempt.ok){
-          location.href = './admin.html#dash';
-        } else {
-          authMsg.textContent = adminAttempt.msg || 'Admin Login fehlgeschlagen.';
-        }
-        return;
+    const adminAttempt = await tryAdminLogin(identifier, password);
+    if(adminAttempt?.handled){
+      if(adminAttempt.ok){
+        location.href = './admin.html#dash';
+      } else {
+        authMsg.textContent = adminAttempt.msg || 'Admin Login fehlgeschlagen.';
       }
+      return;
+    }
 
       if(!isEmail(identifier)) return (authMsg.textContent='Bitte mit Email einloggen (Admin via Username möglich).');
 
