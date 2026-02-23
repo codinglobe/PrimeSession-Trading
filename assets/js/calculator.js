@@ -64,6 +64,7 @@
   };
 
   const settings = p.settings || {};
+  p.settings = settings;
   const state = {
     mode: (settings.defaultSingleEntry ? 'single' : 'scaled'),
     scaleMode: settings.defaultScaleMode || 'flat',
@@ -91,6 +92,12 @@
   if(els.orderCount) els.orderCount.value = String(settings.defaultOrders ?? 5);
   if(els.timeframe) els.timeframe.value = settings.defaultTimeframe || '30m';
   if(els.setupTime) els.setupTime.value = toDtLocalNoSeconds(new Date());
+  if(els.balance){
+    const savedBal = Number(settings.lastCalculatorBalance);
+    if(Number.isFinite(savedBal) && savedBal>0){
+      els.balance.value = PS.utils.formatCHNumber(savedBal, 2);
+    }
+  }
   if(els.chartRow) els.chartRow.classList.toggle('hidden', !settings.showChartLink);
 
   if(els.riskPercent){
@@ -162,6 +169,22 @@
   const onChange = PS.utils.debounce(calcAndRender, 220);
   [els.symbol,els.timeframe,els.title,els.setupTime,els.balance,els.leverage,els.stopLoss,els.lower,els.upper,els.orderCount,els.chartLink,els.singleEntryPrice]
     .filter(Boolean).forEach(inp => inp.addEventListener('input', onChange));
+
+  const saveBalanceInput = PS.utils.debounce(()=>{
+    if(!els.balance) return;
+    const raw = String(els.balance.value||'').trim();
+    if(!raw){
+      delete settings.lastCalculatorBalance;
+      PS.storage.save(ctx.data);
+      return;
+    }
+    const val = PS.utils.parseCHNumber(raw);
+    if(Number.isFinite(val) && val>0){
+      settings.lastCalculatorBalance = val;
+      PS.storage.save(ctx.data);
+    }
+  }, 250);
+  els.balance?.addEventListener('input', saveBalanceInput);
 
   els.saveTrade?.addEventListener('click', saveTrade);
 
@@ -703,9 +726,11 @@
     }
 
     if(!state._groupInit){
-      for(const [sym, m2] of map){
-        state.symOpen.add(keySym(sym));
-        for(const tf of m2.keys()) state.tfOpen.add(keyTF(sym,tf));
+      const firstSym = map.keys().next().value;
+      if(firstSym){
+        state.symOpen.add(keySym(firstSym));
+        const firstTf = map.get(firstSym)?.keys().next().value;
+        if(firstTf) state.tfOpen.add(keyTF(firstSym, firstTf));
       }
       state._groupInit = true;
     }
@@ -765,7 +790,12 @@
       btn.addEventListener('click', ()=>{
         const sym = btn.getAttribute('data-toggle-sym');
         const k = keySym(sym);
-        if(state.symOpen.has(k)) state.symOpen.delete(k); else state.symOpen.add(k);
+        if(state.symOpen.has(k)){
+          state.symOpen.delete(k);
+        } else {
+          state.symOpen.clear();
+          state.symOpen.add(k);
+        }
         renderSaved();
       });
     });
@@ -773,7 +803,12 @@
       btn.addEventListener('click', ()=>{
         const [sym, tf] = btn.getAttribute('data-toggle-tf').split('||');
         const k = keyTF(sym, tf);
-        if(state.tfOpen.has(k)) state.tfOpen.delete(k); else state.tfOpen.add(k);
+        if(state.tfOpen.has(k)){
+          state.tfOpen.delete(k);
+        } else {
+          state.tfOpen.clear();
+          state.tfOpen.add(k);
+        }
         renderSaved();
       });
     });
@@ -786,12 +821,20 @@
       ensureOrderShape(t);
 
       root.querySelector('[data-act="tp"]')?.addEventListener('click', ()=>{
-        if(state.tpOpen.has(t.id)) state.tpOpen.delete(t.id); else state.tpOpen.add(t.id);
+        const willOpen = !state.tpOpen.has(t.id);
+        state.tpOpen.clear();
+        state.entriesOpen.clear();
+        state.orderOpen.clear();
+        if(willOpen) state.tpOpen.add(t.id);
         renderSaved();
       });
 
       root.querySelector('[data-act="entries"]')?.addEventListener('click', ()=>{
-        if(state.entriesOpen.has(t.id)) state.entriesOpen.delete(t.id); else state.entriesOpen.add(t.id);
+        const willOpen = !state.entriesOpen.has(t.id);
+        state.tpOpen.clear();
+        state.entriesOpen.clear();
+        state.orderOpen.clear();
+        if(willOpen) state.entriesOpen.add(t.id);
         renderSaved();
       });
 
@@ -839,12 +882,17 @@
       // accordion per order
       root.querySelectorAll('[data-order-toggle]').forEach(btn=>{
         btn.addEventListener('click', ()=>{
-          const oi = Number(btn.getAttribute('data-oi'));
-          const k = keyOrder(t.id, oi);
-          if(state.orderOpen.has(k)) state.orderOpen.delete(k); else state.orderOpen.add(k);
-          renderSaved();
-        });
+        const oi = Number(btn.getAttribute('data-oi'));
+        const k = keyOrder(t.id, oi);
+        if(state.orderOpen.has(k)){
+          state.orderOpen.delete(k);
+        } else {
+          state.orderOpen.clear();
+          state.orderOpen.add(k);
+        }
+        renderSaved();
       });
+    });
 
       // existing fill edit/delete (autosave)
       root.querySelectorAll('[data-fill-row]').forEach(fr=>{

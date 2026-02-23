@@ -14,14 +14,14 @@
   const sumEl = document.getElementById('journalSummary');
 
   const filterState = { symbol:new Set(), timeframe:new Set(), status:new Set(), direction:new Set() };
-  const openDetails = new Set();
+  let openDetailId = '';
   let outsideCloseBound = false;
 
   // open a specific trade once (from calculator "Journal" button)
   ctx.data.ui = ctx.data.ui || {};
   const openOnce = ctx.data.ui.journalOpenTradeId || '';
   if(openOnce){
-    openDetails.add(openOnce);
+    openDetailId = openOnce;
     ctx.data.ui.journalOpenTradeId = '';
     PS.storage.save(ctx.data);
   }
@@ -452,7 +452,7 @@
       const slBooked = bookedQtyPerSlot(t,'SL') > 0;
       const slTxt = slBooked ? '✕' : (t.sl ? PS.utils.formatCHNumber(t.sl,pmap.price) : '—');
 
-      const isOpen = openDetails.has(t.id);
+      const isOpen = openDetailId === t.id;
 
       return `
         <tr>
@@ -487,7 +487,7 @@
         e.stopPropagation();
         closeAllFilterPops();
         const id = btn.getAttribute('data-open');
-        if(openDetails.has(id)) openDetails.delete(id); else openDetails.add(id);
+        openDetailId = (openDetailId === id) ? '' : id;
         render();
       });
     });
@@ -567,7 +567,7 @@
         const v = PS.utils.parseCHNumber(inp.value);
         if(v>0) t.tpTargets[s]=v; else delete t.tpTargets[s];
         PS.storage.save(ctx.data);
-        openDetails.add(t.id);
+        openDetailId = t.id;
         render();
       });
     }
@@ -659,7 +659,7 @@
         computeDerived(t);
         autoStatusAndExitTime(t);
         PS.storage.save(ctx.data);
-        openDetails.add(t.id);
+        openDetailId = t.id;
         render();
       };
 
@@ -669,7 +669,7 @@
         computeDerived(t);
         autoStatusAndExitTime(t);
         PS.storage.save(ctx.data);
-        openDetails.add(t.id);
+        openDetailId = t.id;
         render();
       });
     });
@@ -703,7 +703,7 @@
         autoStatusAndExitTime(t);
         PS.storage.save(ctx.data);
 
-        openDetails.add(t.id);
+        openDetailId = t.id;
         render();
       };
 
