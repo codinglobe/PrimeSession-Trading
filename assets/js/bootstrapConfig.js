@@ -1,7 +1,5 @@
 // assets/js/bootstrapConfig.js
 (function () {
-  const ENV_STORAGE_KEY = 'ps_runtime_env';
-
   const KEY_ALIASES = {
     SUPABASE_URL: [
       'SUPABASE_URL',
@@ -16,8 +14,7 @@
       'VITE_SUPABASE_ANON_KEY'
     ],
     ADMIN_USERNAME: ['ADMIN_USERNAME'],
-    ADMIN_EMAIL: ['ADMIN_EMAIL'],
-    STORAGE_KEY: ['STORAGE_KEY']
+    ADMIN_EMAIL: ['ADMIN_EMAIL']
   };
 
   function pickValue(obj, keys) {
@@ -29,12 +26,11 @@
     return '';
   }
 
-  function mergeRuntimeConfig(target, source, { overwrite = false } = {}) {
+  function mergeRuntimeConfig(target, source) {
     if (!source || typeof source !== 'object') return;
     for (const [targetKey, aliases] of Object.entries(KEY_ALIASES)) {
       const value = pickValue(source, aliases);
-      if (!value) continue;
-      if (overwrite || !target[targetKey]) target[targetKey] = value;
+      if (value && !target[targetKey]) target[targetKey] = value;
     }
   }
 
@@ -48,6 +44,7 @@
     }
   }
 
+<<<<<<< codex/configure-supabase-settings
   function detectEnvName(configJson) {
     const queryEnv = new URLSearchParams(window.location.search).get('ps_env') || '';
     const forced = String(queryEnv).trim();
@@ -95,10 +92,13 @@
     };
   }
 
+=======
+>>>>>>> Snapshot-0001
   window.PS_CONFIG = window.PS_CONFIG || {};
 
   window.PS = window.PS || {};
   window.PS.configReady = (async () => {
+<<<<<<< codex/configure-supabase-settings
     const runtimeJson = await loadConfigJson();
     if (runtimeJson) applyEnvironment(runtimeJson, window.PS_CONFIG);
     else {
@@ -107,6 +107,11 @@
       const baseStorageKey = window.PS_CONFIG.STORAGE_KEY || 'primeSessionTrading_v4.5';
       window.PS_CONFIG.STORAGE_KEY = `${baseStorageKey}__${envName}`;
     }
+=======
+    // Optional runtime file for cloud/static hosting.
+    const runtimeJson = await loadConfigJson();
+    mergeRuntimeConfig(window.PS_CONFIG, runtimeJson);
+>>>>>>> Snapshot-0001
     return window.PS_CONFIG;
   })();
 })();
