@@ -71,24 +71,49 @@
     return null;
   }
 
+  function tryAdminLogin(identifier, password){
+    const adminUser = String(window.PS_CONFIG?.ADMIN_USERNAME || 'admin').trim();
+    const adminPass = String(window.PS_CONFIG?.ADMIN_PASSWORD || 'admin123').trim();
+    if(!identifier || !password) return false;
+    if(identifier.toLowerCase() !== adminUser.toLowerCase()) return false;
+    if(password !== adminPass) return false;
+
+    const d = PS.storage.load();
+    d.currentUser = 'admin';
+    d.impersonateUser = null;
+    d.profiles = d.profiles || {};
+    d.profiles.admin = d.profiles.admin || PS.storage.mkProfile(null, true, '');
+    d.profiles.admin.flag = true;
+    d.profiles.admin.active = true;
+    d.profiles.admin.lastLoginAt = new Date().toISOString();
+    PS.storage.save(d, { cloud:false });
+    return true;
+  }
+
   loginForm?.addEventListener('submit', async (e)=>{
     e.preventDefault();
     authMsg.textContent = '';
 
-    const email = (loginUser.value||'').trim();
+    const identifier = (loginUser.value||'').trim();
     const password = (loginPass.value||'').trim();
-    if(!email || !password) return (authMsg.textContent='Email/Password fehlt.');
-    if(!isEmail(email)) return (authMsg.textContent='Bitte mit Email einloggen.');
+    if(!identifier || !password) return (authMsg.textContent='Email/Password fehlt.');
+
+    if(tryAdminLogin(identifier, password)){
+      location.href = './admin.html#dash';
+      return;
+    }
+
+    if(!isEmail(identifier)) return (authMsg.textContent='Bitte mit Email einloggen (Admin via Username möglich).');
 
     const supabase = await supabaseWait();
 
-    const { data: res, error } = await supabase.auth.signInWithPassword({ email, password });
+    const { data: res, error } = await supabase.auth.signInWithPassword({ email: identifier, password });
     if(error) return (authMsg.textContent='Login fehlgeschlagen (Email/Passwort).');
 
     const user = res?.user;
-    const username = user?.user_metadata?.username || (email.split('@')[0]);
+    const username = user?.user_metadata?.username || (identifier.split('@')[0]);
 
-    await PS.storage.cloudSyncAfterAuth({ username, email });
+    await PS.storage.cloudSyncAfterAuth({ username, email: identifier });
 
     location.href = './index.html';
   });

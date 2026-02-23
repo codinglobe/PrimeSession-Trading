@@ -26,6 +26,8 @@
     PS.storage.save(ctx.data);
   }
 
+  loadSavedFilters();
+
   normalize();
   render();
 
@@ -35,6 +37,30 @@
   function fmtUSDT8(n){ return PS.common.fmtUSDT8(n); }
   function uniq(arr){ return Array.from(new Set(arr.filter(Boolean))); }
   function esc(s){ return PS.common.esc(s); }
+
+  function serializeFilters(){
+    return {
+      symbol: Array.from(filterState.symbol),
+      timeframe: Array.from(filterState.timeframe),
+      status: Array.from(filterState.status),
+      direction: Array.from(filterState.direction)
+    };
+  }
+
+  function persistFilters(){
+    ctx.data.ui = ctx.data.ui || {};
+    ctx.data.ui.journalFilters = serializeFilters();
+    PS.storage.save(ctx.data);
+  }
+
+  function loadSavedFilters(){
+    const stored = ctx.data?.ui?.journalFilters;
+    if(!stored || typeof stored !== 'object') return;
+    for(const key of Object.keys(filterState)){
+      const vals = Array.isArray(stored[key]) ? stored[key] : [];
+      filterState[key] = new Set(vals.filter(Boolean).map(v=>String(v)));
+    }
+  }
 
   function statusLabel(s){
     s = String(s||'');
@@ -375,6 +401,7 @@
         e.stopPropagation();
         const key = b.getAttribute('data-clear');
         filterState[key].clear();
+        persistFilters();
         render();
       });
     });
@@ -386,7 +413,7 @@
         const val = cb.getAttribute('data-v');
         const set = filterState[key];
 
-        if(val==='__ALL__'){ set.clear(); render(); return; }
+        if(val==='__ALL__'){ set.clear(); persistFilters(); render(); return; }
 
         const allCb = headEl.querySelector(`input[data-fkey="${CSS.escape(key)}"][data-v="__ALL__"]`);
         if(allCb) allCb.checked = false;
@@ -394,6 +421,7 @@
         if(cb.checked) set.add(val);
         else set.delete(val);
 
+        persistFilters();
         render();
       });
     });
