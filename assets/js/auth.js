@@ -12,7 +12,7 @@
 
   function showSupabaseConfigHint(targetEl){
     if(!targetEl) return;
-    targetEl.textContent = 'Supabase ist nicht konfiguriert. Setze SUPABASE_URL + SUPABASE_ANON_KEY (oder NEXT_PUBLIC_*/VITE_*). Optional lokal im Browser: PS_SUPABASE_URL + PS_SUPABASE_ANON_KEY.';
+    targetEl.textContent = "Supabase ist nicht konfiguriert. Cloud: 'config.json' (aus 'config.json.example') mit SUPABASE_URL + SUPABASE_ANON_KEY bereitstellen. Lokal: 'config.local.example.js' nach 'config.local.js' kopieren.";
   }
 
   const modeLogin = document.getElementById('modeLogin');
