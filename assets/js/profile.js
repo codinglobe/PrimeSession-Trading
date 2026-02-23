@@ -50,7 +50,7 @@
   }
   setTheme.value = (p.settings.theme === 'light') ? 'light' : 'dark';
 
-  setTF.value = p.settings.defaultTimeframe || '30m';
+  setTF.value = p.settings.defaultTimeframe || '15m';
   setRisk.value = String(p.settings.defaultRiskPercent ?? 0.50);
   setLev.value = String(p.settings.defaultLeverage ?? 10);
   setOrders.value = String(p.settings.defaultOrders ?? 5);
@@ -61,16 +61,6 @@
   runnerPct.value = String(p.settings.tpScheme.runnerPercent ?? 10);
 
   renderTpInputs();
-
-  // Theme Change: nur profile theme setzen
-  setTheme.addEventListener('change', ()=>{
-    p.settings.theme = (setTheme.value === 'light') ? 'light' : 'dark';
-    // global fallback auch aktualisieren (für Login-Page)
-    data.ui = data.ui || {};
-    data.ui.theme = p.settings.theme;
-    PS.storage.save(data);
-    PS.common.applyThemeValue(p.settings.theme);
-  });
 
   tpCount.addEventListener('input', renderTpInputs);
 
@@ -83,7 +73,7 @@
     data.ui = data.ui || {};
     data.ui.theme = p.settings.theme;
 
-    p.settings.defaultTimeframe = setTF.value || '30m';
+    p.settings.defaultTimeframe = setTF.value || '15m';
     p.settings.defaultRiskPercent = PS.utils.parseCHNumber(setRisk.value) || 0.50;
     p.settings.defaultLeverage = Number(setLev.value)||10;
     p.settings.defaultOrders = Number(setOrders.value)||5;

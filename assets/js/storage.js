@@ -24,12 +24,12 @@
   function defaultSettings(){
     return {
       theme: 'dark',
-      defaultTimeframe: '30m',
+      defaultTimeframe: '15m',
       defaultLeverage: 10,
       defaultOrders: 5,
       defaultRiskPercent: 0.50,
       defaultScaleMode: 'flat',
-      showChartLink: true,
+      showChartLink: false,
       tpScheme: defaultTpScheme()
     };
   }

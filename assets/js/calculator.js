@@ -90,7 +90,7 @@
   // defaults
   if(els.leverage) els.leverage.value = String(settings.defaultLeverage ?? 10);
   if(els.orderCount) els.orderCount.value = String(settings.defaultOrders ?? 5);
-  if(els.timeframe) els.timeframe.value = settings.defaultTimeframe || '30m';
+  if(els.timeframe) els.timeframe.value = settings.defaultTimeframe || '15m';
   if(els.setupTime) els.setupTime.value = toDtLocalNoSeconds(new Date());
   if(els.balance){
     const savedBal = Number(settings.lastCalculatorBalance);
@@ -221,7 +221,7 @@
     const pmap = getPMap(symbol);
     return {
       symbol, pmap,
-      timeframe: els.timeframe?.value || (settings.defaultTimeframe || '30m'),
+      timeframe: els.timeframe?.value || (settings.defaultTimeframe || '15m'),
       title: (els.title?.value||'').trim(),
       setupTimeISO: dtLocalToISO(els.setupTime?.value),
       balance: PS.utils.parseCHNumber(els.balance?.value),
@@ -306,38 +306,18 @@
     return arr;
   }
 
-  function buildWeights(n, mode){
-    const rBase=1.20, rMode=1.55;
-    const base = Array.from({length:n},(_,i)=>Math.pow(rBase,(n-1-i)));
-    let mod;
-    if(mode==='flat') mod = Array.from({length:n},()=>1);
-    else if(mode==='aufsteigend') mod = Array.from({length:n},(_,i)=>Math.pow(rMode,i));
-    else mod = Array.from({length:n},(_,i)=>Math.pow(rMode,(n-1-i)));
-    return base.map((b,i)=>b*mod[i]);
-  }
-
-  function quantizePercents5(weights){
-    const n = weights.length;
-    const minPer = 5;
-    const base = Array.from({length:n}, ()=>minPer);
-    let remaining = 100 - (minPer*n);
-    if(remaining < 0){
-      const each = Math.floor((100/n)/5)*5 || 0;
-      const out = Array.from({length:n}, ()=>each);
-      let diff = 100 - out.reduce((a,b)=>a+b,0);
-      let i=0; while(diff>0){ out[i%n]+=5; diff-=5; i++; }
-      return out;
+  function buildEqualPercents(n){
+    const safeN = Math.max(1, Number(n)||1);
+    const base = Math.floor((100/safeN)/5)*5;
+    const out = Array.from({length:safeN}, ()=>base);
+    let diff = 100 - out.reduce((a,b)=>a+b,0);
+    let i = 0;
+    while(diff > 0){
+      out[i%safeN] += 5;
+      diff -= 5;
+      i++;
     }
-    const units = Math.round(remaining/5);
-    const sumW = weights.reduce((a,b)=>a+b,0) || 1;
-    const rawUnits = weights.map(w => units*(w/sumW));
-    const floors = rawUnits.map(x=>Math.floor(x));
-    let used = floors.reduce((a,b)=>a+b,0);
-    let left = units-used;
-    const rema = rawUnits.map((x,i)=>({i,r:x-floors[i]})).sort((a,b)=>b.r-a.r);
-    const extra = floors.slice();
-    for(let k=0;k<left;k++) extra[rema[k%rema.length].i]+=1;
-    return base.map((b,i)=>b+extra[i]*5);
+    return out;
   }
 
   function allocateQtyByPercentsMin(totalQty, percents, pmap){
@@ -377,6 +357,18 @@
       iter++;
     }
     return qtys;
+  }
+
+  function sortOrdersByQtyDesc(orders, dir){
+    return (orders||[])
+      .slice()
+      .sort((a,b)=>{
+        const qtyDiff = Number(b.qty||0) - Number(a.qty||0);
+        if(Math.abs(qtyDiff) > 1e-12) return qtyDiff;
+        if(dir === 'SHORT') return Number(a.price||0) - Number(b.price||0);
+        return Number(b.price||0) - Number(a.price||0);
+      })
+      .map((o, idx)=>({ ...o, index: idx+1 }));
   }
 
   function weightedAvgOrders(orders){
@@ -456,16 +448,16 @@
     if(els.orderCount && Number(els.orderCount.value) !== usedCount) els.orderCount.value = String(usedCount);
 
     const prices = buildPriceLadderDirectional(i.lower,i.upper,usedCount,dir);
-    const weights = buildWeights(usedCount, state.scaleMode);
-    const percents = quantizePercents5(weights);
+    const percents = buildEqualPercents(usedCount);
 
     const qtys = allocateQtyByPercentsMin(totalQty, percents, pmap);
 
-    const orders = prices.map((price, idx)=>({
+    const ordersRaw = prices.map((price, idx)=>({
       index: idx+1, price, qty: qtys[idx],
       notional: qtys[idx]*price,
       percent: percents[idx]
     }));
+    const orders = sortOrdersByQtyDesc(ordersRaw, dir);
 
     const avgEntry = weightedAvgOrders(orders);
     const notional = totalQty * avgEntry;
