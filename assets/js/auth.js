@@ -27,6 +27,10 @@
   const regPass = document.getElementById('regPass');
 
   const authMsg = document.getElementById('authMsg');
+  const loginHelpForm = document.getElementById('loginHelpForm');
+  const helpUserOrEmail = document.getElementById('helpUserOrEmail');
+  const helpMsg = document.getElementById('helpMsg');
+  const helpMsgOut = document.getElementById('helpMsgOut');
 
   function showMode(m){
     authMsg.textContent = '';
@@ -50,6 +54,21 @@
   function isEmail(x){
     const s = String(x||'').trim();
     return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s);
+  }
+
+  function findUserByIdent(dataModel, ident){
+    const id = String(ident||'').trim().toLowerCase();
+    if(!id) return null;
+
+    for(const u of Object.keys(dataModel?.profiles||{})){
+      if(u.toLowerCase() === id) return u;
+    }
+    for(const [u, prof] of Object.entries(dataModel?.profiles||{})){
+      if(u === 'guest') continue;
+      const em = String(prof?.email||'').trim().toLowerCase();
+      if(em && em === id) return u;
+    }
+    return null;
   }
 
   loginForm?.addEventListener('submit', async (e)=>{
@@ -104,5 +123,49 @@
 
     await PS.storage.cloudSyncAfterAuth({ username, email });
     location.href = './index.html';
+  });
+
+  loginHelpForm?.addEventListener('submit', (e)=>{
+    e.preventDefault();
+    helpMsgOut.textContent = '';
+
+    const ident = (helpUserOrEmail.value||'').trim();
+    const msg = (helpMsg.value||'').trim();
+
+    if(!ident) return (helpMsgOut.textContent='Username oder Email fehlt.');
+    if(!msg) return (helpMsgOut.textContent='Nachricht fehlt.');
+
+    const user = findUserByIdent(data, ident);
+    if(!user) return (helpMsgOut.textContent='Kein User gefunden (Username/Email).');
+
+    const profile = data.profiles?.[user];
+    if(!profile) return (helpMsgOut.textContent='Profil konnte nicht geladen werden.');
+
+    profile.tickets = profile.tickets || [];
+    const nowIso = new Date().toISOString();
+    const baseId = Date.now();
+
+    profile.tickets.unshift({
+      id: `tk_${baseId}_${Math.random().toString(16).slice(2)}`,
+      title: 'Login Hilfe',
+      type: 'login_help',
+      status: 'open',
+      createdAt: nowIso,
+      updatedAt: nowIso,
+      messages: [
+        {
+          id: `m_${baseId}`,
+          from: 'user',
+          text: msg,
+          createdAt: nowIso,
+          attachments: []
+        }
+      ]
+    });
+
+    PS.storage.save(data);
+    helpMsgOut.textContent = `✅ Ticket erstellt für User: ${user}`;
+    helpUserOrEmail.value = '';
+    helpMsg.value = '';
   });
 })();
