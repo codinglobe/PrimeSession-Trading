@@ -11,6 +11,12 @@
   const data = ctx.data;
   const p = ctx.profile;
 
+  const supabaseWait = async () => {
+    await (window.PS.supabaseReady || Promise.resolve());
+    if(!window.PS.supabase) throw new Error('Supabase nicht konfiguriert (PS_CONFIG).');
+    return window.PS.supabase;
+  };
+
   const setTheme = document.getElementById('setTheme');
   const setTF = document.getElementById('setTF');
   const setRisk = document.getElementById('setRisk');
@@ -109,11 +115,10 @@
   });
 
   // Email ändern
-  document.getElementById('changeEmailBtn').addEventListener('click', ()=>{
+  document.getElementById('changeEmailBtn').addEventListener('click', async ()=>{
     emailMsg.textContent = '';
     const cp = curPass.value || '';
     if(!cp) return (emailMsg.textContent='Aktuelles Passwort fehlt.');
-    if(PS.utils.sha256(cp) !== p.hash) return (emailMsg.textContent='Aktuelles Passwort falsch.');
 
     const em = (newEmail.value||'').trim();
     if(!isEmail(em)) return (emailMsg.textContent='Email ungültig.');
@@ -126,28 +131,77 @@
       }
     }
 
-    p.email = em;
-    PS.storage.save(data);
-    emailMsg.textContent = '✅ Email geändert.';
-    newEmail.value = '';
+    try{
+      const supabase = await supabaseWait();
+      const currentEmail = String(p.email || '').trim();
+      if(!currentEmail || !isEmail(currentEmail)){
+        emailMsg.textContent = 'Session/Profil-Email fehlt. Bitte neu einloggen.';
+        return;
+      }
+
+      const { error: reauthError } = await supabase.auth.signInWithPassword({
+        email: currentEmail,
+        password: cp
+      });
+      if(reauthError){
+        emailMsg.textContent = authErrorMessage(reauthError, { fallback: 'Revalidierung fehlgeschlagen.' });
+        return;
+      }
+
+      const { error: updateError } = await supabase.auth.updateUser({ email: em });
+      if(updateError){
+        emailMsg.textContent = authErrorMessage(updateError, { fallback: 'Email-Update fehlgeschlagen.' });
+        return;
+      }
+
+      p.email = em;
+      PS.storage.save(data);
+      emailMsg.textContent = '✅ Email geändert.';
+      newEmail.value = '';
+    }catch(err){
+      emailMsg.textContent = String(err?.message || 'Supabase nicht verfügbar.');
+    }
   });
 
   // Passwort ändern
-  document.getElementById('changePassBtn').addEventListener('click', ()=>{
+  document.getElementById('changePassBtn').addEventListener('click', async ()=>{
     passMsg.textContent = '';
     const cp = curPass.value || '';
     if(!cp) return (passMsg.textContent='Aktuelles Passwort fehlt.');
-    if(PS.utils.sha256(cp) !== p.hash) return (passMsg.textContent='Aktuelles Passwort falsch.');
 
     const np = newPass.value || '';
     const np2 = newPass2.value || '';
     if(np.length < 4) return (passMsg.textContent='Neues Passwort zu kurz (min 4).');
     if(np !== np2) return (passMsg.textContent='Passwörter stimmen nicht überein.');
 
-    p.hash = PS.utils.sha256(np);
-    PS.storage.save(data);
-    passMsg.textContent = '✅ Passwort geändert.';
-    newPass.value = ''; newPass2.value = '';
+    try{
+      const supabase = await supabaseWait();
+      const currentEmail = String(p.email || '').trim();
+      if(!currentEmail || !isEmail(currentEmail)){
+        passMsg.textContent = 'Session/Profil-Email fehlt. Bitte neu einloggen.';
+        return;
+      }
+
+      const { error: reauthError } = await supabase.auth.signInWithPassword({
+        email: currentEmail,
+        password: cp
+      });
+      if(reauthError){
+        passMsg.textContent = authErrorMessage(reauthError, { fallback: 'Revalidierung fehlgeschlagen.' });
+        return;
+      }
+
+      const { error: updateError } = await supabase.auth.updateUser({ password: np });
+      if(updateError){
+        passMsg.textContent = authErrorMessage(updateError, { fallback: 'Passwort-Update fehlgeschlagen.' });
+        return;
+      }
+
+      passMsg.textContent = '✅ Passwort geändert.';
+      newPass.value = ''; newPass2.value = '';
+    }catch(err){
+      passMsg.textContent = String(err?.message || 'Supabase nicht verfügbar.');
+    }
   });
 
   // Deletes
@@ -211,5 +265,28 @@
   function isEmail(x){
     const s = String(x||'').trim();
     return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s);
+  }
+
+  function authErrorMessage(error, { fallback } = {}){
+    const msg = String(error?.message || '').toLowerCase();
+    const code = String(error?.code || '').toLowerCase();
+
+    if(msg.includes('invalid login credentials') || code === 'invalid_credentials'){
+      return 'Aktuelles Passwort falsch.';
+    }
+    if(msg.includes('session') && (msg.includes('missing') || msg.includes('not found'))){
+      return 'Session fehlt. Bitte neu einloggen.';
+    }
+    if(msg.includes('invalid') && msg.includes('email')){
+      return 'Email ungültig.';
+    }
+    if(msg.includes('already') && (msg.includes('registered') || msg.includes('exists'))){
+      return 'Email ist bereits registriert.';
+    }
+    if(msg.includes('password') && msg.includes('short')){
+      return 'Neues Passwort ist zu kurz.';
+    }
+
+    return fallback || 'Aktion fehlgeschlagen.';
   }
 })();
