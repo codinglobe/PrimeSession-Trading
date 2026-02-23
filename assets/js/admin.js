@@ -15,6 +15,7 @@
   }
 
   const data = ctx.data;
+  let globalSource = { ok:false, users:[], message:'' };
 
   const viewDash = document.getElementById('viewDash');
   const viewTickets = document.getElementById('viewTickets');
@@ -25,6 +26,13 @@
   const navUsers = document.getElementById('navUsers');
 
   const adminKpis = document.getElementById('adminKpis');
+  const globalDataNotice = document.createElement('div');
+  globalDataNotice.className = 'card';
+  globalDataNotice.style.marginTop = '1rem';
+  globalDataNotice.style.display = 'none';
+  globalDataNotice.innerHTML = '<strong>Hinweis Datenquelle</strong><div class="small muted" id="globalDataNoticeText"></div>';
+  document.querySelector('.nav.nav-admin')?.insertAdjacentElement('afterend', globalDataNotice);
+  const globalDataNoticeText = document.getElementById('globalDataNoticeText');
 
   // Tickets
   const tFilter = document.getElementById('adminTicketStatus');
@@ -64,16 +72,35 @@
   }
 
   window.addEventListener('hashchange', route);
-  route();
+  init();
+
+  async function init(){
+    await loadGlobalAdminData();
+    route();
+  }
+
+  async function loadGlobalAdminData(){
+    globalSource = await PS.storage.getAdminGlobalSnapshot();
+    const migrationHint = 'Migration: Frühere lokale Daten (z. B. lokale profiles-Snapshots) sind unvollständig und werden für Admin-Übersichten bewusst nicht als "alle User" verwendet.';
+
+    if(!globalSource.ok){
+      globalDataNotice.style.display = '';
+      globalDataNoticeText.textContent = `${globalSource.message || 'Globale Daten nicht verfügbar.'} ${migrationHint}`;
+      return;
+    }
+
+    if(globalSource.warning){
+      globalDataNotice.style.display = '';
+      globalDataNoticeText.textContent = `${globalSource.warning} ${migrationHint}`;
+      return;
+    }
+
+    globalDataNotice.style.display = '';
+    globalDataNoticeText.textContent = `Quelle: ${globalSource.source}. ${migrationHint}`;
+  }
 
   function allUsers(includeAdmin=true){
-    const out = [];
-    for(const [u,p] of Object.entries(data.profiles||{})){
-      if(u==='guest') continue;
-      if(!includeAdmin && u==='admin') continue;
-      out.push({ user:u, profile:p });
-    }
-    return out;
+    return (globalSource.users || []).filter(x=> includeAdmin || x.user!=='admin');
   }
 
   function safeNum(x){ const n=Number(x||0); return Number.isFinite(n)?n:0; }
@@ -83,7 +110,8 @@
     let pnlGross=0, pnlNet=0, fees=0;
     let tOpen=0,tProg=0,tDone=0,tRej=0;
 
-    for(const {user, profile} of allUsers(true)){
+    const baseUsers = allUsers(true);
+    for(const {user, profile} of baseUsers){
       users++;
       trades += (profile.journalTrades||[]).length;
       tickets += (profile.tickets||[]).length;
@@ -100,7 +128,10 @@
         else if(tk.status==='rejected') tRej++;
       }
     }
-    PS.storage.save(data);
+    if(!globalSource.ok){
+      adminKpis.innerHTML = `<div class="muted">Globale Admin-KPIs sind derzeit nicht verfügbar. Bitte Backend-Verbindung/Rechte prüfen.</div>`;
+      return;
+    }
 
     adminKpis.innerHTML = [
       kpi('Users', users),
@@ -125,9 +156,9 @@
 
   function collectAllTickets(){
     const out = [];
-    for(const {user, profile} of allUsers(true)){
+    for(const {user, profile, userId} of allUsers(true)){
       for(const tk of (profile.tickets||[])){
-        out.push({ user, tk });
+        out.push({ user, tk, profile, userId });
       }
     }
     out.sort((a,b)=> (b.tk.updatedAt||'').localeCompare(a.tk.updatedAt||''));
@@ -142,13 +173,17 @@
       const okStatus = (f==='ALL') ? true : x.tk.status===f;
       if(!okStatus) return false;
       if(!q) return true;
-      const email = String(data.profiles[x.user]?.email||'').toLowerCase();
+      const email = String(x.profile?.email||'').toLowerCase();
       return x.user.toLowerCase().includes(q) || email.includes(q);
     });
 
     if(!all.length){
-      tList.textContent = 'Keine Tickets.';
-      tDetail.textContent = '—';
+      tList.textContent = globalSource.ok
+        ? 'Keine Tickets in globaler Datenquelle.'
+        : 'Keine globalen Ticket-Daten verfügbar.';
+      tDetail.textContent = globalSource.ok
+        ? '—'
+        : 'Bitte Hinweis zur Datenquelle oben prüfen.';
       return;
     }
 
@@ -179,10 +214,10 @@
 
     const found = all.find(x=> x.user===activeTicket.user && x.tk.id===activeTicket.ticketId) || fallback;
     activeTicket = { user: found.user, ticketId: found.tk.id };
-    renderTicketDetail(found.user, found.tk);
+    renderTicketDetail(found.user, found.tk, found.userId, found.profile);
   }
 
-  function renderTicketDetail(user, tk){
+  function renderTicketDetail(user, tk, userId, profile){
     const msgs = (tk.messages||[]).map(m=>{
       const who = m.from==='admin' ? 'Admin' : user;
       const attach = (m.attachments||[]).map(a=>
@@ -225,8 +260,7 @@
     document.getElementById('admSetStatus').addEventListener('change', ()=>{
       tk.status = document.getElementById('admSetStatus').value;
       tk.updatedAt = new Date().toISOString();
-      PS.storage.save(data);
-      renderTickets();
+      persistTicketChanges(user, userId, profile);
     });
 
     document.getElementById('admSend').addEventListener('click', async ()=>{
@@ -250,9 +284,19 @@
 
       if(tk.status==='done' || tk.status==='rejected') tk.status='in_progress';
 
-      PS.storage.save(data);
-      renderTickets();
+      persistTicketChanges(user, userId, profile);
     });
+
+    async function persistTicketChanges(username, uid, prof){
+      try{
+        await PS.storage.saveAdminUserProfile({ userId:uid, username, profile: prof });
+        await loadGlobalAdminData();
+        renderTickets();
+      } catch(err){
+        const out = document.getElementById('admOut');
+        if(out) out.textContent = `Speichern fehlgeschlagen: ${err.message || err}`;
+      }
+    }
 
     function readAsDataURL(file){
       return new Promise((resolve,reject)=>{
@@ -300,6 +344,11 @@
         const email = String(x.profile.email||'').toLowerCase();
         return x.user.toLowerCase().includes(q) || email.includes(q);
       });
+
+    if(!globalSource.ok){
+      usersBody.innerHTML = '<tr><td colspan="14" class="muted">Globale User-Daten nicht verfügbar. Bitte Hinweis zur Datenquelle prüfen.</td></tr>';
+      return;
+    }
 
     usersBody.innerHTML = users.map(x=>{
       const prof = x.profile;
@@ -354,14 +403,16 @@
 	  btn.addEventListener('click', ()=>{
 		const u = btn.getAttribute('data-toggle');
 		if(u==='admin') return; // admin nie inaktiv
-		const prof = data.profiles[u];
+		const row = (globalSource.users||[]).find(x=> x.user===u);
+		const prof = row?.profile;
 		if(!prof) return;
 
 		const isActive = (prof.active !== false);
 		prof.active = !isActive; // ✅ sauber toggeln
 
-		PS.storage.save(data);
-		renderUsers();
+		PS.storage.saveAdminUserProfile({ userId: row.userId, username: u, profile: prof })
+		  .then(async ()=>{ await loadGlobalAdminData(); renderUsers(); })
+		  .catch(()=>{});
 	  });
 	});
 
@@ -369,9 +420,7 @@
       btn.addEventListener('click', ()=>{
         const u = btn.getAttribute('data-del');
         if(u==='admin') return;
-        if(!confirm(`User ${u} löschen?`)) return;
-        PS.storage.deleteUser(data, u);
-        renderUsers();
+        alert('Löschen ist im globalen Admin-Modell noch nicht aktiviert.');
       });
     });
   }
