@@ -107,7 +107,7 @@
 
   async function loadGlobalAdminData(){
     globalSource = await PS.storage.getAdminGlobalSnapshot();
-    const migrationHint = 'Migration: Frühere lokale Daten (z. B. lokale profiles-Snapshots) sind unvollständig und werden für Admin-Übersichten bewusst nicht als "alle User" verwendet.';
+    const migrationHint = 'Hinweis: Falls Cloud nicht erreichbar ist, wird auf lokale Browser-Daten als Admin-Fallback gewechselt.';
 
     if(!globalSource.ok){
       globalDataNotice.style.display = '';

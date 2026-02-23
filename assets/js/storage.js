@@ -3,8 +3,8 @@
   window.PS = window.PS || {};
   const STORAGE_KEY = (window.PS_CONFIG?.STORAGE_KEY) || 'primeSessionTrading_v4.5';
   const LEGACY_STORAGE_KEYS = ['primeSessionTrading_v4.5', 'primeSessionTrading_v4'];
-  const CLOUD_TABLE = 'app_data';
-  const ADMIN_GLOBAL_SOURCE = 'supabase.app_data';
+  const CLOUD_TABLE = (window.PS_CONFIG?.CLOUD_TABLE) || 'app_data';
+  const ADMIN_GLOBAL_SOURCE = `supabase.${CLOUD_TABLE}`;
 
   let pushTimer = null;
   let pushing = false;
@@ -264,17 +264,38 @@
     return users;
   }
 
+  function buildLocalAdminUsers(data){
+    const users = [];
+    const profiles = data?.profiles || {};
+
+    for(const [username, profile] of Object.entries(profiles)){
+      if(!username || username === 'guest') continue;
+      users.push({
+        user: username,
+        userId: null,
+        updatedAt: data?._meta?.updatedAt || '',
+        profile: JSON.parse(JSON.stringify(profile || mkProfile(username === 'admin', '')))
+      });
+    }
+
+    return users.sort((a,b)=> a.user.localeCompare(b.user));
+  }
+
+  function localAdminSnapshot(message){
+    const local = load();
+    return {
+      ok: true,
+      source: 'localStorage.profiles',
+      warning: message || 'Globale Cloud-Daten nicht verfügbar. Fallback auf lokale Profil-Daten dieses Browsers.',
+      users: buildLocalAdminUsers(local)
+    };
+  }
+
   async function getAdminGlobalSnapshot(){
     const supabase = await getSupabase();
     const user = await getUser();
     if(!supabase || !user){
-      return {
-        ok: false,
-        source: ADMIN_GLOBAL_SOURCE,
-        reason: 'auth_or_supabase_missing',
-        message: 'Globale Admin-Daten sind nicht verfügbar (kein Supabase/Auth-Kontext).',
-        users: []
-      };
+      return localAdminSnapshot('Globale Cloud-Daten sind nicht verfügbar (kein Supabase/Auth-Kontext).');
     }
 
     const { data: rows, error } = await supabase
@@ -283,13 +304,7 @@
       .order('updated_at', { ascending:false });
 
     if(error){
-      return {
-        ok: false,
-        source: ADMIN_GLOBAL_SOURCE,
-        reason: 'backend_query_failed',
-        message: `Globale Admin-Daten konnten nicht geladen werden: ${error.message || 'Backend-Query fehlgeschlagen.'}`,
-        users: []
-      };
+      return localAdminSnapshot(`Globale Admin-Daten konnten nicht geladen werden (${error.message || 'Backend-Query fehlgeschlagen.'}).`);
     }
 
     const users = normalizeAdminCloudRows(rows);
@@ -305,9 +320,14 @@
 
   async function saveAdminUserProfile({ userId, username, profile }){
     const supabase = await getSupabase();
-    if(!supabase) throw new Error('Supabase nicht verfügbar.');
-    if(!userId) throw new Error('userId fehlt.');
     if(!username) throw new Error('username fehlt.');
+
+    const local = load();
+    local.profiles = local.profiles || {};
+    local.profiles[username] = JSON.parse(JSON.stringify(profile || mkProfile(username === 'admin', '')));
+    save(local, { cloud:false });
+
+    if(!supabase || !userId) return;
 
     const { data: row, error } = await supabase
       .from(CLOUD_TABLE)
@@ -315,7 +335,7 @@
       .eq('user_id', userId)
       .maybeSingle();
 
-    if(error) throw error;
+    if(error) return;
 
     const base = (row?.data && typeof row.data === 'object') ? row.data : baseData();
     base.currentUser = username;
@@ -328,7 +348,7 @@
       .from(CLOUD_TABLE)
       .upsert({ user_id: userId, data: base, updated_at: nowIso() }, { onConflict: 'user_id' });
 
-    if(upErr) throw upErr;
+    if(upErr) return;
   }
 
   function scheduleCloudPush(data){
