@@ -281,6 +281,24 @@
     return users.sort((a,b)=> a.user.localeCompare(b.user));
   }
 
+
+  function shouldAllowLocalAdminFallback(){
+    const host = String(window.location.hostname || '').toLowerCase();
+    const protocol = String(window.location.protocol || '').toLowerCase();
+    if(protocol === 'file:') return true;
+    return host === 'localhost' || host === '127.0.0.1' || host === '::1';
+  }
+
+  function adminSnapshotUnavailable(message){
+    return {
+      ok: false,
+      source: 'none',
+      message: message || 'Globale Admin-Daten nicht verfügbar.',
+      warning: '',
+      users: []
+    };
+  }
+
   function localAdminSnapshot(message){
     const local = load();
     return {
@@ -295,7 +313,10 @@
     const supabase = await getSupabase();
     const user = await getUser();
     if(!supabase || !user){
-      return localAdminSnapshot('Globale Cloud-Daten sind nicht verfügbar (kein Supabase/Auth-Kontext).');
+      if(shouldAllowLocalAdminFallback()){
+        return localAdminSnapshot('Globale Cloud-Daten sind nicht verfügbar (kein Supabase/Auth-Kontext).');
+      }
+      return adminSnapshotUnavailable('Globale Cloud-Daten sind nicht verfügbar (kein Supabase/Auth-Kontext). Admin-Liste bleibt in Hosted-Umgebungen absichtlich leer, um Env-Mischungen zu vermeiden.');
     }
 
     const { data: rows, error } = await supabase
@@ -304,7 +325,10 @@
       .order('updated_at', { ascending:false });
 
     if(error){
-      return localAdminSnapshot(`Globale Admin-Daten konnten nicht geladen werden (${error.message || 'Backend-Query fehlgeschlagen.'}).`);
+      if(shouldAllowLocalAdminFallback()){
+        return localAdminSnapshot(`Globale Admin-Daten konnten nicht geladen werden (${error.message || 'Backend-Query fehlgeschlagen.'}).`);
+      }
+      return adminSnapshotUnavailable(`Globale Admin-Daten konnten nicht geladen werden (${error.message || 'Backend-Query fehlgeschlagen.'}).`);
     }
 
     const users = normalizeAdminCloudRows(rows);
