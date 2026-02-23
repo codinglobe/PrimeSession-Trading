@@ -10,6 +10,11 @@
     return window.PS.supabase;
   };
 
+  function showSupabaseConfigHint(targetEl){
+    if(!targetEl) return;
+    targetEl.textContent = 'Supabase ist nicht konfiguriert. Setze SUPABASE_URL + SUPABASE_ANON_KEY (oder NEXT_PUBLIC_*/VITE_*). Optional lokal im Browser: PS_SUPABASE_URL + PS_SUPABASE_ANON_KEY.';
+  }
+
   const modeLogin = document.getElementById('modeLogin');
   const modeRegister = document.getElementById('modeRegister');
 
@@ -132,51 +137,66 @@
       return;
     }
 
-    if(!isEmail(identifier)) return (authMsg.textContent='Bitte mit Email einloggen (Admin via Username möglich).');
+      if(!isEmail(identifier)) return (authMsg.textContent='Bitte mit Email einloggen (Admin via Username möglich).');
 
-    const supabase = await supabaseWait();
+      const supabase = await supabaseWait();
 
-    const { data: res, error } = await supabase.auth.signInWithPassword({ email: identifier, password });
-    if(error) return (authMsg.textContent='Login fehlgeschlagen (Email/Passwort).');
+      const { data: res, error } = await supabase.auth.signInWithPassword({ email: identifier, password });
+      if(error) return (authMsg.textContent='Login fehlgeschlagen (Email/Passwort).');
 
-    const user = res?.user;
-    const username = user?.user_metadata?.username || (identifier.split('@')[0]);
+      const user = res?.user;
+      const username = user?.user_metadata?.username || (identifier.split('@')[0]);
 
-    await PS.storage.cloudSyncAfterAuth({ username, email: identifier });
+      await PS.storage.cloudSyncAfterAuth({ username, email: identifier });
 
-    location.href = './index.html';
+      location.href = './index.html';
+    } catch(err){
+      if(String(err?.message||'').includes('Supabase nicht konfiguriert')){
+        showSupabaseConfigHint(authMsg);
+      } else {
+        authMsg.textContent = 'Login fehlgeschlagen.';
+      }
+    }
   });
 
   registerForm?.addEventListener('submit', async (e)=>{
     e.preventDefault();
     authMsg.textContent = '';
 
-    const email = (regEmail.value||'').trim();
-    const username = (regUser.value||'').trim();
-    const password = (regPass.value||'').trim();
+    try {
+      const email = (regEmail.value||'').trim();
+      const username = (regUser.value||'').trim();
+      const password = (regPass.value||'').trim();
 
-    if(!email || !isEmail(email)) return (authMsg.textContent='Email ungültig.');
-    if(!username || username.length < 3) return (authMsg.textContent='Username min. 3 Zeichen.');
-    if(!password || password.length < 6) return (authMsg.textContent='Passwort min. 6 Zeichen.');
+      if(!email || !isEmail(email)) return (authMsg.textContent='Email ungültig.');
+      if(!username || username.length < 3) return (authMsg.textContent='Username min. 3 Zeichen.');
+      if(!password || password.length < 6) return (authMsg.textContent='Passwort min. 6 Zeichen.');
 
-    const supabase = await supabaseWait();
+      const supabase = await supabaseWait();
 
-    const { data: res, error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: { data: { username } }
-    });
+      const { data: res, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: { data: { username } }
+      });
 
-    if(error) return (authMsg.textContent='Registrierung fehlgeschlagen.');
+      if(error) return (authMsg.textContent='Registrierung fehlgeschlagen.');
 
-    // Wenn Email-Confirm an ist, gibt es evtl. keine Session sofort:
-    if(!res?.session){
-      authMsg.textContent = '✅ User erstellt. Bitte Email bestätigen, dann einloggen.';
-      return;
+      // Wenn Email-Confirm an ist, gibt es evtl. keine Session sofort:
+      if(!res?.session){
+        authMsg.textContent = '✅ User erstellt. Bitte Email bestätigen, dann einloggen.';
+        return;
+      }
+
+      await PS.storage.cloudSyncAfterAuth({ username, email });
+      location.href = './index.html';
+    } catch(err){
+      if(String(err?.message||'').includes('Supabase nicht konfiguriert')){
+        showSupabaseConfigHint(authMsg);
+      } else {
+        authMsg.textContent = 'Registrierung fehlgeschlagen.';
+      }
     }
-
-    await PS.storage.cloudSyncAfterAuth({ username, email });
-    location.href = './index.html';
   });
 
   loginHelpForm?.addEventListener('submit', (e)=>{
