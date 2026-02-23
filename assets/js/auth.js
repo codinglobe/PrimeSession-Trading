@@ -11,8 +11,14 @@
   };
 
   function showSupabaseConfigHint(targetEl){
-    if(!targetEl) return;
-    targetEl.textContent = "Supabase ist nicht konfiguriert. Cloud: 'config.json' (aus 'config.json.example') mit SUPABASE_URL + SUPABASE_ANON_KEY bereitstellen. Lokal: 'config.local.example.js' nach 'config.local.js' kopieren.";
+    if(!PS.error){
+      if(targetEl) targetEl.textContent = "Supabase ist nicht konfiguriert. Cloud: 'config.json' (aus 'config.json.example') mit SUPABASE_URL + SUPABASE_ANON_KEY bereitstellen. Lokal: 'config.local.example.js' nach 'config.local.js' kopieren.";
+      return;
+    }
+    PS.error.showInline(targetEl, {
+      title: 'Konfigurationsfehler',
+      message: "Supabase ist nicht konfiguriert. Cloud: 'config.json' (aus 'config.json.example') mit SUPABASE_URL + SUPABASE_ANON_KEY bereitstellen. Lokal: 'config.local.example.js' nach 'config.local.js' kopieren."
+    }, { context: 'auth.supabaseConfig' });
   }
 
   const modeLogin = document.getElementById('modeLogin');
@@ -121,7 +127,7 @@
 
   loginForm?.addEventListener('submit', async (e)=>{
     e.preventDefault();
-    authMsg.textContent = '';
+    PS.error?.clearInline(authMsg);
 
     try {
       const identifier = (loginUser.value||'').trim();
@@ -134,6 +140,10 @@
           location.href = './admin.html#dash';
         } else {
           authMsg.textContent = adminAttempt.msg || 'Admin Login fehlgeschlagen.';
+          PS.error?.log({
+            title: 'Login-Fehler',
+            message: authMsg.textContent
+          }, 'auth.adminLogin');
         }
         return;
       }
@@ -143,7 +153,11 @@
       const supabase = await supabaseWait();
 
       const { data: res, error } = await supabase.auth.signInWithPassword({ email: identifier, password });
-      if(error) return (authMsg.textContent='Login fehlgeschlagen (Email/Passwort).');
+      if(error){
+        authMsg.textContent='Login fehlgeschlagen (Email/Passwort).';
+        PS.error?.log(error, 'auth.loginWithPassword');
+        return;
+      }
 
       const user = res?.user;
       const username = user?.user_metadata?.username || (identifier.split('@')[0]);
@@ -152,17 +166,21 @@
 
       location.href = './index.html';
     } catch(err){
+      PS.error?.log(err, 'auth.login.catch');
       if(String(err?.message||'').includes('Supabase nicht konfiguriert')){
         showSupabaseConfigHint(authMsg);
       } else {
-        authMsg.textContent = 'Login fehlgeschlagen.';
+        PS.error?.showInline(authMsg, {
+          title: 'Login-Fehler',
+          message: 'Login fehlgeschlagen.'
+        }, { context: 'auth.login' });
       }
     }
   });
 
   registerForm?.addEventListener('submit', async (e)=>{
     e.preventDefault();
-    authMsg.textContent = '';
+    PS.error?.clearInline(authMsg);
 
     try {
       const email = (regEmail.value||'').trim();
@@ -181,7 +199,11 @@
         options: { data: { username } }
       });
 
-      if(error) return (authMsg.textContent='Registrierung fehlgeschlagen.');
+      if(error){
+        authMsg.textContent='Registrierung fehlgeschlagen.';
+        PS.error?.log(error, 'auth.register');
+        return;
+      }
 
       // Wenn Email-Confirm an ist, gibt es evtl. keine Session sofort:
       if(!res?.session){
@@ -192,10 +214,14 @@
       await PS.storage.cloudSyncAfterAuth({ username, email });
       location.href = './index.html';
     } catch(err){
+      PS.error?.log(err, 'auth.register.catch');
       if(String(err?.message||'').includes('Supabase nicht konfiguriert')){
         showSupabaseConfigHint(authMsg);
       } else {
-        authMsg.textContent = 'Registrierung fehlgeschlagen.';
+        PS.error?.showInline(authMsg, {
+          title: 'Registrierungs-Fehler',
+          message: 'Registrierung fehlgeschlagen.'
+        }, { context: 'auth.register' });
       }
     }
   });
