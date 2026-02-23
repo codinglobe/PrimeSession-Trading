@@ -211,7 +211,15 @@
     </footer>
   </main>
 
-	<script src="./config.local.js"></script>
+	<script>
+	  (function(){
+	    const host = String(window.location.hostname || "").toLowerCase();
+	    const useLocalConfig = host === "localhost" || host === "127.0.0.1" || host.endsWith(".local");
+	    if(useLocalConfig){
+	      document.write('<script src="./config.local.js"><\/script>');
+	    }
+	  })();
+	</script>
 	<script src="./assets/js/config.js"></script>
   <script src="./assets/js/bootstrapConfig.js"></script>
     <script src="./assets/js/errorHandler.js"></script>

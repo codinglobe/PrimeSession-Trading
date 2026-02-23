@@ -212,6 +212,7 @@
       }
 
       await PS.storage.cloudSyncAfterAuth({ username, email });
+
       location.href = './index.html';
     } catch(err){
       PS.error?.log(err, 'auth.register.catch');
