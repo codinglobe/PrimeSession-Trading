@@ -3,6 +3,10 @@
   const ctx = PS.common.init();
   if(!PS.common.requireAuth(ctx)) return;
 
+  const ADMIN_REFRESH_MS = 10_000;
+  let refreshTimer = null;
+  let refreshing = false;
+
   // Wenn Admin impersonating aktiv hat -> User-Ansicht erzwingen
   if(ctx.isAdmin && ctx.currentUser==='admin' && ctx.data.impersonateUser){
     location.href = './index.html';
@@ -72,11 +76,33 @@
   }
 
   window.addEventListener('hashchange', route);
+  window.addEventListener('focus', ()=>{ refreshGlobalData({ rerender:true }).catch(()=>{}); });
+  document.addEventListener('visibilitychange', ()=>{
+    if(document.visibilityState === 'visible'){
+      refreshGlobalData({ rerender:true }).catch(()=>{});
+    }
+  });
   init();
 
   async function init(){
     await loadGlobalAdminData();
     route();
+
+    if(refreshTimer) clearInterval(refreshTimer);
+    refreshTimer = setInterval(()=>{
+      refreshGlobalData({ rerender:true }).catch(()=>{});
+    }, ADMIN_REFRESH_MS);
+  }
+
+  async function refreshGlobalData({ rerender=false } = {}){
+    if(refreshing) return;
+    refreshing = true;
+    try{
+      await loadGlobalAdminData();
+      if(rerender) route();
+    } finally {
+      refreshing = false;
+    }
   }
 
   async function loadGlobalAdminData(){
@@ -166,8 +192,8 @@
   }
 
   function renderTickets(){
-    const f = tFilter.value;
-    const q = (tUserSearch.value||'').toLowerCase().trim();
+    const f = tFilter?.value || 'ALL';
+    const q = (tUserSearch?.value||'').toLowerCase().trim();
 
     const all = collectAllTickets().filter(x=>{
       const okStatus = (f==='ALL') ? true : x.tk.status===f;
@@ -178,14 +204,16 @@
     });
 
     if(!all.length){
-      tList.textContent = globalSource.ok
+      if(tList) tList.textContent = globalSource.ok
         ? 'Keine Tickets in globaler Datenquelle.'
         : 'Keine globalen Ticket-Daten verfügbar.';
-      tDetail.textContent = globalSource.ok
+      if(tDetail) tDetail.textContent = globalSource.ok
         ? '—'
         : 'Bitte Hinweis zur Datenquelle oben prüfen.';
       return;
     }
+
+    if(!tList || !tDetail) return;
 
     tList.innerHTML = all.map(x=>{
       const act = activeTicket && activeTicket.user===x.user && activeTicket.ticketId===x.tk.id;
@@ -335,7 +363,7 @@
   }
 
   function renderUsers(){
-    const q = (userSearch.value||'').toLowerCase().trim();
+    const q = (userSearch?.value||'').toLowerCase().trim();
 
     const users = allUsers(true)
       .sort((a,b)=> a.user.localeCompare(b.user))
@@ -346,9 +374,11 @@
       });
 
     if(!globalSource.ok){
-      usersBody.innerHTML = '<tr><td colspan="14" class="muted">Globale User-Daten nicht verfügbar. Bitte Hinweis zur Datenquelle prüfen.</td></tr>';
+      if(usersBody) usersBody.innerHTML = '<tr><td colspan="14" class="muted">Globale User-Daten nicht verfügbar. Bitte Hinweis zur Datenquelle prüfen.</td></tr>';
       return;
     }
+
+    if(!usersBody) return;
 
     usersBody.innerHTML = users.map(x=>{
       const prof = x.profile;
