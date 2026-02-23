@@ -23,9 +23,37 @@ const HOSTED_SUPABASE = {
 };
 
 function detectHostedEnvironment() {
+  const explicitEnv = fromFirst(
+    existing.PS_ENV,
+    existing.APP_ENV,
+    window.PS_ENV,
+    window.APP_ENV,
+    env.PS_ENV,
+    cfEnv.PS_ENV,
+    env.APP_ENV,
+    cfEnv.APP_ENV,
+    env.CF_PAGES_BRANCH,
+    cfEnv.CF_PAGES_BRANCH
+  ).toLowerCase();
+
+  if (explicitEnv) {
+    if (['production', 'prod', 'main'].includes(explicitEnv)) return 'production';
+    if (['test', 'testing', 'staging', 'preview', 'snapshot', 'dev', 'development'].some((k) => explicitEnv.includes(k))) {
+      return 'test';
+    }
+  }
+
   const host = String(window.location.hostname || '').toLowerCase();
   if (!host) return 'production';
-  if (host.includes('staging') || host.includes('test') || host.includes('dev')) return 'test';
+
+  const hint = `${host} ${String(window.location.pathname || '').toLowerCase()}`;
+  if (
+    ['staging', 'test', 'dev', 'preview', 'snapshot'].some((k) => hint.includes(k)) ||
+    /(^|[.-])(?:snapshot-\d+|preview|dev|test)([.-]|$)/.test(host)
+  ) {
+    return 'test';
+  }
+
   return 'production';
 }
 
