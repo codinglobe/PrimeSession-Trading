@@ -92,6 +92,20 @@
     } catch { return false; }
   }
 
+  function hasAnyMeaningfulData(data){
+    try{
+      const profiles = data?.profiles || {};
+      for(const [u, prof] of Object.entries(profiles)){
+        if(u === 'guest') continue;
+        const c = (prof?.calculatorTrades?.length||0);
+        const j = (prof?.journalTrades?.length||0);
+        const t = (prof?.tickets?.length||0);
+        if((c + j + t) > 0) return true;
+      }
+      return false;
+    } catch { return false; }
+  }
+
   function isFreshEmptyLocal(data){
     const synced = String(data?._meta?.cloudSyncedAt || '').trim();
     if(synced) return false;
@@ -354,13 +368,16 @@
     const remote = await cloudFetch(user.id);
 
     const localUpdated = Date.parse(local?._meta?.updatedAt || '') || 0;
-    const localSynced  = Date.parse(local?._meta?.cloudSyncedAt || '') || 0;
     const remoteUpdated = remote?.updated_at ? Date.parse(remote.updated_at) : 0;
-    const remoteHas = !!(remote?.data && hasMeaningfulData(remote.data, u));
+    const remoteHasForUser = !!(remote?.data && hasMeaningfulData(remote.data, u));
+    const remoteHasAny = !!(remote?.data && hasAnyMeaningfulData(remote.data));
     const localFreshEmpty = isFreshEmptyLocal(local);
+    const localHasCloudHistory = !!String(local?._meta?.cloudSyncedAt || '').trim();
 
-    if(remote?.data && remoteHas && localFreshEmpty){
-      backupLocal('fresh_empty_local_remote_wins');
+    // Kritisch für Geräte-/Browserwechsel:
+    // Wenn Remote bereits echte Daten enthält, darf ein frisches/leeres Local diese nicht überschreiben.
+    if(remote?.data && remoteHasAny && (localFreshEmpty || !localHasCloudHistory)){
+      backupLocal('remote_seed_wins');
       local = remote.data;
 
       local.currentUser = u;
@@ -374,7 +391,7 @@
       return;
     }
 
-    if(remote?.data && remoteUpdated >= localUpdated){
+    if(remote?.data && (remoteUpdated >= localUpdated || remoteHasForUser)){
       backupLocal('remote_wins');
       local = remote.data;
 
@@ -412,7 +429,6 @@
 
     const local = load();
     const localUpdated = Date.parse(local?._meta?.updatedAt || '') || 0;
-    const localSynced  = Date.parse(local?._meta?.cloudSyncedAt || '') || 0;
 
     // 1) Wenn local Änderungen hat, die noch nicht hochgeladen wurden -> push
     if(localUpdated > localSynced + EPS_MS){

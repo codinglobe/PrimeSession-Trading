@@ -12,7 +12,7 @@
 
   function showSupabaseConfigHint(targetEl){
     if(!targetEl) return;
-    targetEl.textContent = 'Supabase ist nicht konfiguriert. Setze SUPABASE_URL + SUPABASE_ANON_KEY (oder NEXT_PUBLIC_*/VITE_*). Optional lokal im Browser: PS_SUPABASE_URL + PS_SUPABASE_ANON_KEY.';
+    targetEl.textContent = "Supabase ist nicht konfiguriert. Lege 'config.json' (aus 'config.json.example') mit environments.production/test an oder lokal 'config.local.example.js' -> 'config.local.js'. Für Test explizit mit '?ps_env=test' öffnen.";
   }
 
   const modeLogin = document.getElementById('modeLogin');

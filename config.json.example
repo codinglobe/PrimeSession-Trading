@@ -1,0 +1,17 @@
+{
+  "defaultEnvironment": "production",
+  "environments": {
+    "production": {
+      "SUPABASE_URL": "https://<prod-project-ref>.supabase.co",
+      "SUPABASE_ANON_KEY": "<prod-anon-key>",
+      "ADMIN_USERNAME": "admin",
+      "ADMIN_EMAIL": "codinglobe@gmail.com"
+    },
+    "test": {
+      "SUPABASE_URL": "https://<test-project-ref>.supabase.co",
+      "SUPABASE_ANON_KEY": "<test-anon-key>",
+      "ADMIN_USERNAME": "admin",
+      "ADMIN_EMAIL": "codinglobe@gmail.com"
+    }
+  }
+}
