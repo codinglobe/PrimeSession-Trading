@@ -10,6 +10,11 @@
     return window.PS.supabase;
   };
 
+  function showSupabaseConfigHint(targetEl){
+    if(!targetEl) return;
+    targetEl.textContent = 'Supabase ist nicht konfiguriert. Setze SUPABASE_URL + SUPABASE_ANON_KEY (oder NEXT_PUBLIC_*/VITE_*). Optional lokal im Browser: PS_SUPABASE_URL + PS_SUPABASE_ANON_KEY.';
+  }
+
   const modeLogin = document.getElementById('modeLogin');
   const modeRegister = document.getElementById('modeRegister');
 
@@ -71,83 +76,128 @@
     return null;
   }
 
-  function tryAdminLogin(identifier, password){
+  async function tryAdminLogin(identifier, password){
     const adminUser = String(window.PS_CONFIG?.ADMIN_USERNAME || 'admin').trim();
-    const adminPass = String(window.PS_CONFIG?.ADMIN_PASSWORD || 'admin123').trim();
-    if(!identifier || !password) return false;
-    if(identifier.toLowerCase() !== adminUser.toLowerCase()) return false;
-    if(password !== adminPass) return false;
+    const adminEmail = String(window.PS_CONFIG?.ADMIN_EMAIL || '').trim().toLowerCase();
+    const ident = String(identifier || '').trim().toLowerCase();
+    const isAdminIdent = ident === adminUser.toLowerCase() || (adminEmail && ident === adminEmail);
+
+    if(!isAdminIdent) return { handled:false };
+    if(!window.PS.supabase || !adminEmail){
+      return {
+        handled:true,
+        ok:false,
+        msg:'Admin-Login benötigt Supabase + ADMIN_EMAIL Konfiguration.'
+      };
+    }
+
+    const { data: authRes, error } = await window.PS.supabase.auth.signInWithPassword({
+      email: adminEmail,
+      password
+    });
+
+    if(error || !authRes?.user){
+      return {
+        handled:true,
+        ok:false,
+        msg:'Admin Login fehlgeschlagen (Supabase Email/Passwort).'
+      };
+    }
+
+    await PS.storage.cloudSyncAfterAuth({ username: 'admin', email: adminEmail });
 
     const d = PS.storage.load();
     d.currentUser = 'admin';
     d.impersonateUser = null;
     d.profiles = d.profiles || {};
-    d.profiles.admin = d.profiles.admin || PS.storage.mkProfile(null, true, '');
+    d.profiles.admin = d.profiles.admin || PS.storage.mkProfile(true, adminEmail);
+    d.profiles.admin.email = adminEmail;
     d.profiles.admin.flag = true;
     d.profiles.admin.active = true;
     d.profiles.admin.lastLoginAt = new Date().toISOString();
     PS.storage.save(d, { cloud:false });
-    return true;
+    return { handled:true, ok:true };
   }
 
   loginForm?.addEventListener('submit', async (e)=>{
     e.preventDefault();
     authMsg.textContent = '';
 
-    const identifier = (loginUser.value||'').trim();
-    const password = (loginPass.value||'').trim();
-    if(!identifier || !password) return (authMsg.textContent='Email/Password fehlt.');
+    try {
+      const identifier = (loginUser.value||'').trim();
+      const password = (loginPass.value||'').trim();
+      if(!identifier || !password) return (authMsg.textContent='Email/Password fehlt.');
 
-    if(tryAdminLogin(identifier, password)){
-      location.href = './admin.html#dash';
-      return;
+      const adminAttempt = await tryAdminLogin(identifier, password);
+      if(adminAttempt?.handled){
+        if(adminAttempt.ok){
+          location.href = './admin.html#dash';
+        } else {
+          authMsg.textContent = adminAttempt.msg || 'Admin Login fehlgeschlagen.';
+        }
+        return;
+      }
+
+      if(!isEmail(identifier)) return (authMsg.textContent='Bitte mit Email einloggen (Admin via Username möglich).');
+
+      const supabase = await supabaseWait();
+
+      const { data: res, error } = await supabase.auth.signInWithPassword({ email: identifier, password });
+      if(error) return (authMsg.textContent='Login fehlgeschlagen (Email/Passwort).');
+
+      const user = res?.user;
+      const username = user?.user_metadata?.username || (identifier.split('@')[0]);
+
+      await PS.storage.cloudSyncAfterAuth({ username, email: identifier });
+
+      location.href = './index.html';
+    } catch(err){
+      if(String(err?.message||'').includes('Supabase nicht konfiguriert')){
+        showSupabaseConfigHint(authMsg);
+      } else {
+        authMsg.textContent = 'Login fehlgeschlagen.';
+      }
     }
-
-    if(!isEmail(identifier)) return (authMsg.textContent='Bitte mit Email einloggen (Admin via Username möglich).');
-
-    const supabase = await supabaseWait();
-
-    const { data: res, error } = await supabase.auth.signInWithPassword({ email: identifier, password });
-    if(error) return (authMsg.textContent='Login fehlgeschlagen (Email/Passwort).');
-
-    const user = res?.user;
-    const username = user?.user_metadata?.username || (identifier.split('@')[0]);
-
-    await PS.storage.cloudSyncAfterAuth({ username, email: identifier });
-
-    location.href = './index.html';
   });
 
   registerForm?.addEventListener('submit', async (e)=>{
     e.preventDefault();
     authMsg.textContent = '';
 
-    const email = (regEmail.value||'').trim();
-    const username = (regUser.value||'').trim();
-    const password = (regPass.value||'').trim();
+    try {
+      const email = (regEmail.value||'').trim();
+      const username = (regUser.value||'').trim();
+      const password = (regPass.value||'').trim();
 
-    if(!email || !isEmail(email)) return (authMsg.textContent='Email ungültig.');
-    if(!username || username.length < 3) return (authMsg.textContent='Username min. 3 Zeichen.');
-    if(!password || password.length < 6) return (authMsg.textContent='Passwort min. 6 Zeichen.');
+      if(!email || !isEmail(email)) return (authMsg.textContent='Email ungültig.');
+      if(!username || username.length < 3) return (authMsg.textContent='Username min. 3 Zeichen.');
+      if(!password || password.length < 6) return (authMsg.textContent='Passwort min. 6 Zeichen.');
 
-    const supabase = await supabaseWait();
+      const supabase = await supabaseWait();
 
-    const { data: res, error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: { data: { username } }
-    });
+      const { data: res, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: { data: { username } }
+      });
 
-    if(error) return (authMsg.textContent='Registrierung fehlgeschlagen.');
+      if(error) return (authMsg.textContent='Registrierung fehlgeschlagen.');
 
-    // Wenn Email-Confirm an ist, gibt es evtl. keine Session sofort:
-    if(!res?.session){
-      authMsg.textContent = '✅ User erstellt. Bitte Email bestätigen, dann einloggen.';
-      return;
+      // Wenn Email-Confirm an ist, gibt es evtl. keine Session sofort:
+      if(!res?.session){
+        authMsg.textContent = '✅ User erstellt. Bitte Email bestätigen, dann einloggen.';
+        return;
+      }
+
+      await PS.storage.cloudSyncAfterAuth({ username, email });
+      location.href = './index.html';
+    } catch(err){
+      if(String(err?.message||'').includes('Supabase nicht konfiguriert')){
+        showSupabaseConfigHint(authMsg);
+      } else {
+        authMsg.textContent = 'Registrierung fehlgeschlagen.';
+      }
     }
-
-    await PS.storage.cloudSyncAfterAuth({ username, email });
-    location.href = './index.html';
   });
 
   loginHelpForm?.addEventListener('submit', (e)=>{
